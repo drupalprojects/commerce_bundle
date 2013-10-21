@@ -1,0 +1,35 @@
+<?php
+
+/**
+ * @file
+ * Provides product bundles for Drupal Commerce
+ */
+
+/**
+ * Retuns an array of bundle line item types
+ */
+function commerce_bundle_line_item_types() {
+/** @todo: return bundle line item types, @see commerce_product_line_item_types() ***/
+  return array();
+}
+
+/**
+ * Implements hook_commerce_bundle_item_can_delete().
+ */
+function commerce_bundle_commerce_bundle_item_can_delete($entity) {
+/** @todo: build query per bundle item reference on new line item type ****/
+return TRUE;
+
+  // Use EntityFieldQuery to look for line items referencing this bundle item
+  // and do not allow the delete to occur if one exists.
+  $query = new EntityFieldQuery();
+
+  $query
+    ->addTag('commerce_bundle_commerce_bundle_item_can_delete')
+    ->entityCondition('entity_type', 'commerce_line_item', '=')
+    ->entityCondition('bundle', commerce_bundle_line_item_types(), 'IN')
+    ->fieldCondition('commerce_bundle_item', 'target_id', $entity->item_id, '=')
+    ->count();
+
+  return $query->execute() == 0;
+}

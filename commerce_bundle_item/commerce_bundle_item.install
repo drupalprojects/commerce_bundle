@@ -1,0 +1,58 @@
+<?php
+
+/**
+ * Implements hook_schema().
+ */
+function commerce_bundle_item_schema() {
+  $schema = array();
+
+  $schema['commerce_bundle_item'] = array(
+    'description' => 'The base table for bundle items.',
+    'fields' => array(
+      'item_id' => array(
+        'description' => 'The primary identifier for a bundle item.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'type' => array(
+        'description' => 'The module defined type of this bundle item.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'item_label' => array(
+        'description' => 'The label of this bundle item.',
+        'type' => 'varchar',
+        'length' => 255,
+        'default' => '',
+      ),
+      'status' => array(
+        'description' => 'Boolean indicating whether or not the bundle item is active.',
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 1,
+      ),
+      'created' => array(
+        'description' => 'The Unix timestamp when the bundle item was created.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'changed' => array(
+        'description' => 'The Unix timestamp when the bundle item was most recently saved.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('item_id'),
+    'indexes' => array(
+      'item_type' => array('type'),
+    ),
+  );
+
+  return $schema;
+}

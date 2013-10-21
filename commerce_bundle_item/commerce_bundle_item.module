@@ -1,0 +1,136 @@
+<?php
+
+/**
+ * @file
+ * Provides an entity to store details when a product is part of a bundle.
+ */
+
+/**
+ * Implements hook_hook_info().
+ */
+function commerce_bundle_item_hook_info() {
+  $hooks = array(
+    'commerce_bundle_item_view' => array(
+      'group' => 'commerce',
+    ),
+    'commerce_bundle_item__presave' => array(
+      'group' => 'commerc',
+    ),
+    'commerce_bundle_item_insert' => array(
+      'group' => 'commerce',
+    ),
+    'commerce_bundle_item_update' => array(
+      'group' => 'commerce',
+    ),
+    'commerce_bundle_item_can_delete' => array(
+      'group' => 'commerce',
+    ),
+    'commerce_bundle_item_delete' => array(
+      'group' => 'commerce',
+    ),
+  );
+
+  return $hooks;
+}
+
+/**
+ * Implements of hook_entity_info().
+ */
+function commerce_bundle_item_entity_info() {
+  $data = array();
+
+  $data['commerce_bundle_item'] = array(
+    'label' => t('Commerce Bundle Item'),
+    'entity class' => 'Entity',
+    'controller class' => 'CommerceBundleItemEntityController',
+    'base table' => 'commerce_bundle_item',
+    'fieldable' => TRUE,
+    'entity keys' => array(
+      'id' => 'item_id',
+      'label' => 'item_label',
+    ),
+    'bundles' => array(
+/** @todo: make this a hook ? *****/
+      'commerce_bundle_item' => array(
+        'label' => t('Bundle'),
+        'admin' => array(
+          'path' => 'admin/commerce/config/bundle-item',
+          'access arguments' => array('administer commerce_bundle_item'),
+        ),
+      ),
+    ),
+    'load hook' => 'commerce_bundle_item_load',
+    'view modes' => array(
+      'admin' => array(
+        'label' => t('Admin'),
+        'custom settings' => FALSE,
+      ),
+    ),
+    'admin' => array(
+      'path' => 'admin/commerce/config/bundle-item',
+      'access arguments' => array('administer commerce_bundle_item'),
+    ),
+    'access callback' => 'commerce_entity_access',
+    'token type' => 'commerce-bundle-item',
+    'metadata controller class' => '',
+    'permission labels' => array(
+      'singular' => t('bundle item'),
+      'plural' => t('bundle items'),
+    ),
+  );
+
+  return $data;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function commerce_bundle_item_permission() {
+  $permissions = array(
+    'administer commerce_bundle_item types' => array(
+      'title' => t('Administer bundle item types'),
+      'description' => t('Allows users to configure bundle item types and their fields.'),
+      'restrict access' => TRUE,
+    ),
+  );
+
+  $permissions += commerce_entity_access_permissions('commerce_bundle_item');
+
+  return $permissions;
+}
+
+/**
+ * Loads bundle item by ID.
+ *
+ * @param $item_id
+ *   The local ID of the bundle item to load.
+ *
+ * @return
+ *   A loaded entity object or FALSE if the specified id does not exist
+ */
+function commerce_bundle_item_load($item_id) {
+  return entity_load_single('commerce_bundle_item_load', $item_id);
+}
+
+/**
+ * Determines whether or not the given bundle item can be deleted.
+ *
+ * @param $entity
+ *   The bundle item to be checked for deletion.
+ *
+ * @return
+ *   Boolean indicating whether or not the bundle item can be deleted.
+ */
+function commerce_bundle_item_can_delete($entity) {
+  // Return FALSE if the given entity does not have an ID; it need not be
+  // deleted, which is functionally equivalent to cannot be deleted as far as
+  // code depending on this function is concerned.
+  if (empty($entity->item_id)) {
+    return FALSE;
+  }
+
+  // If any module implementing hook_commerce_bundle_item_can_delete()
+  // Returns FALSE the entity cannot be deleted.
+  // Return TRUE if none return FALSE.
+  return !in_array(FALSE, module_invoke_all('commerce_bundle_item_can_delete', $entity));
+}
