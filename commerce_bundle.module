@@ -33,3 +33,21 @@ return TRUE;
 
   return $query->execute() == 0;
 }
+
+/**
+ * Implements hook_commerce_line_item_type_info().
+ */
+function commerce_bundle_commerce_line_item_type_info() {
+  $line_item_types = array();
+
+  $line_item_types['product_bundle'] = array(
+    'type' => 'product_bundle',
+    'name' => t('Product Bundle'),
+    'description' => t('References a Product Bundle.'),
+    'product' => TRUE,
+    'add_form_submit_value' => t('Add bundle'),
+    'base' => 'commerce_product_line_item',
+  );
+
+  return $line_item_types;
+}
