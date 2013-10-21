@@ -1,0 +1,15 @@
+<?php
+/**
+ * @file
+ * Install, update and uninstall functions for the Commerce Bundle module.
+ */
+
+/**
+ * Field config and instance definitions.
+ *
+ * @return array
+ *   The fields and their instances this module creates.
+ */
+function commerce_bundle_installed_fields() {
+  $fields = array();
+}
