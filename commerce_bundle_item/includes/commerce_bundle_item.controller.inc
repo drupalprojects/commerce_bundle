@@ -26,7 +26,6 @@ class CommerceBundleItemEntityController extends DrupalCommerceEntityController 
       'item_id' => NULL,
       'type' => '',
       'status' => 1,
-      'item_label' => '',
       'created' => '',
       'changed' => '',
     );

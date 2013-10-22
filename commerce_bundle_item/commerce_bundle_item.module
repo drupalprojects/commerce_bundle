@@ -5,29 +5,24 @@
  * Provides an entity to store details when a product is part of a bundle.
  */
 
+
 /**
  * Implements hook_hook_info().
  */
 function commerce_bundle_item_hook_info() {
+  $base = array(
+    'group' => 'commerce',
+  );
+  
   $hooks = array(
-    'commerce_bundle_item_view' => array(
-      'group' => 'commerce',
-    ),
-    'commerce_bundle_item__presave' => array(
-      'group' => 'commerc',
-    ),
-    'commerce_bundle_item_insert' => array(
-      'group' => 'commerce',
-    ),
-    'commerce_bundle_item_update' => array(
-      'group' => 'commerce',
-    ),
-    'commerce_bundle_item_can_delete' => array(
-      'group' => 'commerce',
-    ),
-    'commerce_bundle_item_delete' => array(
-      'group' => 'commerce',
-    ),
+    'commerce_bundle_item_view' => $base,
+    'commerce_bundle_item_presave' => $base,
+    'commerce_bundle_item_insert' => $base,
+    'commerce_bundle_item_update' => $base,
+    'commerce_bundle_item_can_delete' => $base,
+    'commerce_bundle_item_delete' => $base,
+    'commerce_bundle_item_type_info' => $base,
+    'commerce_bundle_item_type_info_alter' => $base,
   );
 
   return $hooks;
@@ -37,9 +32,10 @@ function commerce_bundle_item_hook_info() {
  * Implements of hook_entity_info().
  */
 function commerce_bundle_item_entity_info() {
-  $data = array();
+  $return = array();
+  $module_path = drupal_get_path('module', 'commerce_bundle_item');
 
-  $data['commerce_bundle_item'] = array(
+  $return['commerce_bundle_item'] = array(
     'label' => t('Commerce Bundle Item'),
     'entity class' => 'Entity',
     'controller class' => 'CommerceBundleItemEntityController',
@@ -47,40 +43,236 @@ function commerce_bundle_item_entity_info() {
     'fieldable' => TRUE,
     'entity keys' => array(
       'id' => 'item_id',
-      'label' => 'item_label',
+      'bundle' => 'type',
+      'label' => 'item_id',
     ),
-    'bundles' => array(
-/** @todo: make this a hook ? *****/
-      'commerce_bundle_item' => array(
-        'label' => t('Bundle'),
-        'admin' => array(
-          'path' => 'admin/commerce/config/bundle-item',
-          'access arguments' => array('administer commerce_bundle_item'),
-        ),
-      ),
+    'bundle keys' => array(
+      'bundle' => 'type',
     ),
+    'bundles' => array(),
     'load hook' => 'commerce_bundle_item_load',
     'view modes' => array(
       'admin' => array(
         'label' => t('Admin'),
         'custom settings' => FALSE,
       ),
+      'display' => array(
+        'label' => t('Display'),
+        'custom settings' => FALSE,
+      ),
     ),
-    'admin' => array(
-      'path' => 'admin/commerce/config/bundle-item',
-      'access arguments' => array('administer commerce_bundle_item'),
+    'admin ui' => array(
+      'path' => 'admin/commerce/bundle-items',
+      'menu wildcard' => '%commerce_bundle_item',
+      'file' => 'commerce_bundle_item.forms.inc',
+      'file path' => $module_path . '/includes',
+      'controller class' => 'CommerceBundleItemUIController',
     ),
     'access callback' => 'commerce_entity_access',
+    'access arguments' => array(
+      'access tag' => 'commerce_bundle_item_access',
+    ),
     'token type' => 'commerce-bundle-item',
-    'metadata controller class' => '',
+    'metadata controller class' => 'EntityDefaultMetadataController',
     'permission labels' => array(
       'singular' => t('bundle item'),
       'plural' => t('bundle items'),
     ),
+    'views controller class' => 'EntityDefaultViewsController',
+    
+    // // Prevent Redirect alteration of the order form.
+    'redirect' => FALSE,
   );
 
-  return $data;
+  // Type setup
+  foreach (commerce_bundle_item_type_get_name() as $type => $name) {
+    $return['commerce_bundle_item']['bundles'][$type] = array(
+      'label' => $name,
+      'admin' => array(
+        'path' => 'admin/commerce/config/bundle-items/' . commerce_bundle_item_type_to_arg($type),
+        'access arguments' => array('administer commerce_bundle_item types'),
+      ),
+    );
+  }
+
+  return $return;
 }
+
+
+/**
+ * Implements hook_menu().
+ */
+function commerce_bundle_item_menu() {
+  $items = array();
+
+  $items['admin/commerce/config/bundle-items'] = array(
+    'title' => 'Bundle item types',
+    'description' => 'Manage bundle item types for your store.',
+    'page callback' => 'commerce_bundle_item_types_overview',
+    'access arguments' => array('administer commerce_bundle_item types'),
+    'file' => 'includes/commerce_bundle_item.types.inc',
+  );
+
+  foreach (commerce_bundle_item_types() as $type => $item_type) {
+    // Convert underscores to hyphens for the menu item argument.
+    $type_arg = commerce_bundle_item_type_to_arg($type);
+
+    $items['admin/commerce/config/bundle-items/' . $type_arg] = array(
+      'title' => $item_type['name'],
+      'page callback' => 'commerce_bundle_item_type_page_redirect',
+      'page arguments' => array($type_arg),
+      'access arguments' => array('administer commerce_bundle_item types'),
+    );
+  }
+  
+  return $items;
+}
+
+/**
+ * Redirects a line item type URL to its fields management page.
+ */
+function commerce_bundle_item_type_page_redirect($type) {
+  drupal_goto('admin/commerce/config/bundle-items/' . $type . '/fields');
+}
+
+/**
+ * Implements hook_menu_alter().
+ */
+function commerce_bundle_item_menu_alter(&$items) {
+  // Transform the field UI tabs into contextual links.
+  foreach (commerce_bundle_item_types() as $type => $item_type) {
+    // Convert underscores to hyphens for the menu item argument.
+    $type_arg = commerce_bundle_item_type_to_arg($type);
+    if (isset($items['admin/commerce/config/bundle-items/' . $type_arg . '/fields'])) {
+      $items['admin/commerce/config/bundle-items/' . $type_arg . '/fields']['context'] = MENU_CONTEXT_PAGE | MENU_CONTEXT_INLINE;
+      $items['admin/commerce/config/bundle-items/' . $type_arg . '/display']['context'] = MENU_CONTEXT_PAGE | MENU_CONTEXT_INLINE;
+    }
+  }
+}
+
+
+// -----------------------------------------------------------------------
+// Bundle item types
+
+/**
+ * Implements hook_commerce_bundle_item_type_info()
+ * Define the default bundle
+ */
+function commerce_bundle_item_commerce_bundle_item_type_info() {
+  $item_types = array();
+
+  $item_types['bundle_item'] = array(
+    'type' => 'bundle_item',
+    'name' => t('Bundle item'),
+    'description' => t('The default bundle item type.'),
+  );
+
+  return $item_types;
+}
+
+
+/**
+ * Returns an array of bundle item type arrays keyed by type.
+ */
+function commerce_bundle_item_types() {
+  // First check the static cache for a types array.
+  $item_types = &drupal_static(__FUNCTION__);
+
+  // If it did not exist, fetch the types now.
+  if (!isset($item_types)) {
+    $item_types = array();
+
+    // Find product types defined by hook_commerce_product_type_info().
+    foreach (module_implements('commerce_bundle_item_type_info') as $module) {
+      foreach (module_invoke($module, 'commerce_bundle_item_type_info') as $type => $item_type) {
+        // Set the module each product type is defined
+        $item_type += array(
+          'module' => $module,
+        );
+        $item_types[$type] = $item_type;
+      }
+    }
+
+    // Last allow the info to be altered by other modules.
+    drupal_alter('commerce_bundle_item_type_info', $item_types);
+  }
+
+  return $item_types;
+}
+
+/**
+ * Resets the cached list of bundle item types.
+ */
+function commerce_bundle_item_types_reset() {
+  $item_types = &drupal_static('commerce_bundle_item_types');
+  $item_types = NULL;
+  entity_info_cache_clear();
+}
+
+/**
+ * Loads a bundle item type.
+ *
+ * @param $type
+ *   The machine-readable name of the bundle item type;
+ *   accepts normal machine names and URL prepared machine names with
+ *   underscores replaced by hyphens.
+ */
+function commerce_bundle_item_type_load($type) {
+  $type = strtr($type, array('-' => '_'));
+  $item_types = commerce_bundle_item_types();
+  return !empty($item_types[$type]) ? $item_types[$type] : FALSE;
+}
+
+/**
+ * Returns the human readable name of any or all bundle item types.
+ *
+ * @param $type
+ *   Optional parameter specifying the type whose name to return.
+ *
+ * @return
+ *   Either an array of all bundle item type names keyed by the machine name
+ *   or a string containing the human readable name for the specified type. If a
+ *   type is specified that does not exist, this function returns FALSE.
+ */
+function commerce_bundle_item_type_get_name($type = NULL) {
+  $item_types = commerce_bundle_item_types();
+
+  // Return a type name if specified and it exists.
+  if (!empty($type)) {
+    if (isset($item_types[$type])) {
+      return $item_types[$type]['name'];
+    }
+    else {
+      // Return FALSE if it does not exist.
+      return FALSE;
+    }
+  }
+
+  // Otherwise turn the array values into the type name only.
+  foreach ($item_types as $key => $value) {
+    $item_types[$key] = $value['name'];
+  }
+
+  return $item_types;
+}
+
+/**
+ * Wraps commerce_bundle_item_type_get_name() for the Entity module.
+ */
+function commerce_bundle_item_type_options_list() {
+  return commerce_bundle_item_type_get_name();
+}
+
+/**
+ * Returns a path argument from a bundle item type.
+ */
+function commerce_bundle_item_type_to_arg($type) {
+  return strtr($type, '_', '-');
+}
+
+
+// -----------------------------------------------------------------------
+// Bundle item entity
 
 /**
  * Implements hook_permission().
@@ -109,7 +301,7 @@ function commerce_bundle_item_permission() {
  *   A loaded entity object or FALSE if the specified id does not exist
  */
 function commerce_bundle_item_load($item_id) {
-  return entity_load_single('commerce_bundle_item_load', $item_id);
+  return entity_load_single('commerce_bundle_item', $item_id);
 }
 
 /**
@@ -133,4 +325,18 @@ function commerce_bundle_item_can_delete($entity) {
   // Returns FALSE the entity cannot be deleted.
   // Return TRUE if none return FALSE.
   return !in_array(FALSE, module_invoke_all('commerce_bundle_item_can_delete', $entity));
+}
+
+
+// -----------------------------------------------------------------------
+// Integration
+
+/**
+ * Implements hook_views_api().
+ */
+function commerce_bundle_item_views_api() {
+  return array(
+    'api' => 3,
+    'path' => drupal_get_path('module', 'commerce_bundle_item') . '/includes/views',
+  );
 }
