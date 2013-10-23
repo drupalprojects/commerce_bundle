@@ -20,10 +20,10 @@ function commerce_bundle_item_types_overview() {
 
   // Loop through all defined bundle item types.
   foreach (commerce_bundle_item_types() as $type => $item_type) {
-    // Build the operation links for the current product type.
+    // Build the operation links for the current item type.
     $links = menu_contextual_links('commerce-bundle-item-type', 'admin/commerce/config/bundle-items', array(commerce_bundle_item_type_to_arg($type)));
 
-    // Add the product type's row to the table's rows array.
+    // Add the item type's row to the table's rows array.
     $type_markup = check_plain($item_type['name']);
     $type_markup .= ' <small>' . t('(Machine name: @type)', array('@type' => $item_type['type'])) . '</small>';
     $type_markup .= '<div class="description">' . filter_xss_admin($item_type['description']) . '</div>';
@@ -34,9 +34,9 @@ function commerce_bundle_item_types_overview() {
     );
   }
 
-  // If no product types are defined...
+  // If no item types are defined...
   if (empty($rows)) {
-    // Add a standard empty row with a link to add a new product type.
+    // Add a standard empty row with a link to add a new item type.
     $rows[] = array(
       array(
         'data' => t('There are no bundle item types.'),

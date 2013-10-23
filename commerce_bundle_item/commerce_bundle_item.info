@@ -12,6 +12,9 @@ core = 7.x
 files[] = includes/commerce_bundle_item.controller.inc
 files[] = includes/commerce_bundle_item.ui.inc
 
+; IEF includes
+files[] = includes/commerce_bundle_item.inline_entity_form.inc
+
 ; Views includes
 files[] = includes/views/handlers/commerce_bundle_item_handler_field_item.inc
 files[] = includes/views/handlers/commerce_bundle_item_handler_field_item_link.inc

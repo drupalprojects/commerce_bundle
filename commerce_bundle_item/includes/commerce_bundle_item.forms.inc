@@ -17,7 +17,12 @@ function commerce_bundle_item_form($form, &$form_state, $entity, $op, $entity_ty
   $form_state['build_info']['files']['form'] = drupal_get_path('module', 'commerce_bundle_item') . '/includes/commerce_bundle_item.forms.inc';
 
   // Add the field related form elements.
-  field_attach_form('commerce_bundle_item', $entity, $form, $form_state);
+  $langcode = entity_language('commerce_bundle_item', $entity);
+  if (empty($langcode)) {
+    $langcode = LANGUAGE_NONE;
+  }
+  
+  field_attach_form('commerce_bundle_item', $entity, $form, $form_state, $langcode);
 
   // Additional entity properties
   $form['status'] = array(

@@ -56,8 +56,12 @@ function commerce_bundle_item_entity_info() {
         'label' => t('Admin'),
         'custom settings' => FALSE,
       ),
-      'display' => array(
-        'label' => t('Display'),
+      'full' => array(
+        'label' => t('Full'),
+        'custom settings' => FALSE,
+      ),
+      'referenced' => array(
+        'label' => t('Referenced'),
         'custom settings' => FALSE,
       ),
     ),
@@ -82,6 +86,17 @@ function commerce_bundle_item_entity_info() {
     // // Prevent Redirect alteration of the order form.
     'redirect' => FALSE,
   );
+
+  // Inline entity form integration
+  if (module_exists('inline_entity_form')) {
+    $return['commerce_bundle_item']['inline entity form'] = array(
+      'controller' => 'CommerceBundleItemInlineEntityFormController',
+    );
+    $return['commerce_bundle_item']['view modes']['admin_ief'] = array(
+      'label' => t('Admin: Inline Entity Form'),
+      'custom settings' => FALSE,
+    );
+  }
 
   // Type setup
   foreach (commerce_bundle_item_type_get_name() as $type => $name) {
@@ -159,6 +174,35 @@ function commerce_bundle_item_status_options_list() {
   );
 }
 
+/**
+ * Implements hook_field_extra_fields().
+ */
+function commerce_bundle_item_field_extra_fields() {
+  $extra = array();
+
+  foreach (commerce_bundle_item_types() as $type => $item_type) {
+    $extra['commerce_bundle_item'][$type] = array(
+      'form' => array(
+        'status' => array(
+          'label' => t('Status'),
+          'description' => t('Bundle item module status form element'),
+          'weight' => 50,
+        ),
+      ),
+      'display' => array(
+        'status' => array(
+          'label' => t('Status'),
+          'description' => t('Whether the bundle item is active or disabled'),
+          'theme' => 'commerce_bundle_item_status',
+          'weight' => 5,
+        ),
+      ),
+    );
+  }
+
+  return $extra;
+}
+
 
 // -----------------------------------------------------------------------
 // Bundle item types
@@ -191,10 +235,10 @@ function commerce_bundle_item_types() {
   if (!isset($item_types)) {
     $item_types = array();
 
-    // Find product types defined by hook_commerce_product_type_info().
+    // Find item types defined by hook_commerce_bundle_item_type_info().
     foreach (module_implements('commerce_bundle_item_type_info') as $module) {
       foreach (module_invoke($module, 'commerce_bundle_item_type_info') as $type => $item_type) {
-        // Set the module each product type is defined
+        // Set the module each item type is defined
         $item_type += array(
           'module' => $module,
         );
@@ -334,6 +378,30 @@ function commerce_bundle_item_can_delete($entity) {
   // Returns FALSE the entity cannot be deleted.
   // Return TRUE if none return FALSE.
   return !in_array(FALSE, module_invoke_all('commerce_bundle_item_can_delete', $entity));
+}
+
+
+// -----------------------------------------------------------------------
+// Theme
+
+/**
+ * Implements hook_theme().
+ */
+function commerce_bundle_item_theme() {
+  return array(
+    'commerce_bundle_item_status' => array(
+      'variables' => array('status' => NULL, 'label' => NULL, 'entity' => NULL),
+      'path' => drupal_get_path('module', 'commerce_bundle_item') . '/theme',
+      'template' => 'commerce-bundle-item-status',
+    ),
+  );
+}
+
+/**
+ * Converts the bundle item status integer to a string before output.
+ */
+function template_preprocess_commerce_bundle_item_status(&$vars) {
+  $vars['status'] = empty($vars['status']) ? t('Disabled') : t('Active');
 }
 
 
