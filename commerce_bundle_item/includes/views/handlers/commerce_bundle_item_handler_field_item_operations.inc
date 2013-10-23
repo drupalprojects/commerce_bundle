@@ -38,7 +38,7 @@ class commerce_bundle_item_handler_field_item_operations extends views_handler_f
 
     // Get the operations links.
     $links = menu_contextual_links('commerce-bundle-item', 'admin/commerce/bundle-items', array($item_id));
-dpm($links, '$links');
+
     if (!empty($links)) {
       // Add the destination to the links if specified.
       if ($this->options['add_destination']) {
