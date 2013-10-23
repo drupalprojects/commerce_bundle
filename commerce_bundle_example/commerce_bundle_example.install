@@ -1,0 +1,70 @@
+<?php
+/**
+ * @file
+ * Install, update and uninstall fns for the Commerce Bundle Example module.
+ */
+
+/**
+ * @param string $product_type
+ *   The product type used for labeling the field instance.
+ *
+ * @return array
+ *   The field instance definition.
+ */
+function commerce_bundle_example_create_entityref_instance($product_type) {
+
+  $instance_name = $product_type . '_group_in_bundle';
+
+  $field_instance = array(
+    'bundle' => 'bundle_example',
+    'deleted' => 0,
+    'description' => '',
+    'display' => array(
+      'default' => array(
+        'label' => 'above',
+        'module' => 'entityreference',
+        'settings' => array(
+          'link' => FALSE,
+        ),
+        'type' => 'entityreference_label',
+        'weight' => 0,
+      ),
+      'teaser' => array(
+        'label' => 'above',
+        'settings' => array(),
+        'type' => 'hidden',
+        'weight' => 0,
+      ),
+    ),
+    'entity_type' => 'node',
+    'field_name' => substr($instance_name, 0, 32),
+    'label' => 'bundle_example',
+    'required' => 0,
+    'settings' => array(
+      'user_register_form' => FALSE,
+    ),
+    'widget' => array(
+      'active' => 1,
+      'module' => 'inline_entity_form',
+      'settings' => array(
+        'fields' => array(),
+        'type_settings' => array(),
+      ),
+      'type' => 'inline_entity_form',
+      'weight' => -4,
+    ),
+  );
+
+  // Translatables
+  // Included for use with string extractors like potx.
+  t('bundle_example');
+
+  return $field_instance;
+}
+
+/**
+ * Implements hook_install().
+ */
+function commerce_bundle_example_install() {
+
+}
