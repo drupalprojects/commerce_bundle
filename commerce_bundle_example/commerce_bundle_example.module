@@ -1,0 +1,22 @@
+<?php
+/**
+ * @file
+ * Provides examples (e.g. content type) to help with understanding bundles.
+ */
+
+/**
+ * Implements hook_node_info().
+ */
+function commerce_bundle_example_node_info() {
+  $items = array(
+    'bundle_example' => array(
+      'name' => t('Bundle Example'),
+      'base' => 'node_content',
+      'description' => t('Example bundle with entity reference fields for each defined product type.'),
+      'has_title' => '1',
+      'title_label' => t('Title'),
+      'help' => '',
+    ),
+  );
+  return $items;
+}
