@@ -20,16 +20,21 @@ class CommerceBundleItemUIController extends EntityBundleableUIController {
     // Unset the manage entity paths, as the provided UI is for admin entities.
     unset($items[$this->path], $items[$this->path . '/list']);
 
-    // Unset all manage/* paths
+    $weight = -1;
     foreach (array_keys($items) as $item_path) {
+      // Unset all manage/* paths
       if (strpos($item_path, $this->path . '/manage/') === 0) {
         unset($items[$item_path]);
+      }
+      else {
+        // Set weight
+        $items[$item_path]['weight'] = $weight++;
       }
     }
 
     // Set title for add
     $items[$this->path . '/add']['title'] = 'Add an item';
-    unset( $items[$this->path . '/add']['title callback'],  $items[$this->path . '/add']['title arguments']);
+    unset($items[$this->path . '/add']['title callback'],  $items[$this->path . '/add']['title arguments']);
     return $items;
   }
 
