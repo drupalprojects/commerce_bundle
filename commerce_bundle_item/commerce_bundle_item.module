@@ -73,7 +73,7 @@ function commerce_bundle_item_entity_info() {
       'access tag' => 'commerce_bundle_item_access',
     ),
     'token type' => 'commerce-bundle-item',
-    'metadata controller class' => 'EntityDefaultMetadataController',
+    'metadata controller class' => '',
     'permission labels' => array(
       'singular' => t('bundle item'),
       'plural' => t('bundle items'),
@@ -147,6 +147,16 @@ function commerce_bundle_item_menu_alter(&$items) {
       $items['admin/commerce/config/bundle-items/' . $type_arg . '/display']['context'] = MENU_CONTEXT_PAGE | MENU_CONTEXT_INLINE;
     }
   }
+}
+
+/**
+ * Returns the options list for the bundle item status property.
+ */
+function commerce_bundle_item_status_options_list() {
+  return array(
+    0 => t('Disabled'),
+    1 => t('Active'),
+  );
 }
 
 
