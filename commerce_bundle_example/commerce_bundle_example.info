@@ -1,0 +1,4 @@
+name = Commerce Bundle Example
+description = Provides an example content type showing how a product bundle is defined.
+package = Commerce (contrib)
+core = 7.x
