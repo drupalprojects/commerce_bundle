@@ -78,7 +78,6 @@ function commerce_bundle_item_entity_info() {
       'singular' => t('bundle item'),
       'plural' => t('bundle items'),
     ),
-    'views controller class' => 'EntityDefaultViewsController',
     
     // // Prevent Redirect alteration of the order form.
     'redirect' => FALSE,
