@@ -6,12 +6,12 @@
  */
 
 /**
- * The controller class for bundle item contains methods for the product CRUD operations.
+ * The controller class for bundle item contains methods for the entity CRUD operations.
  *
  * Mainly relies on the EntityAPIController class provided by the Entity
  * module, just overrides specific features.
  */
-class CommerceBundleItemEntityController extends DrupalCommerceEntityController {
+class CommerceBundleItemEntityController extends EntityAPIController {
 
   /**
    * Create a default bundle item.
@@ -26,7 +26,6 @@ class CommerceBundleItemEntityController extends DrupalCommerceEntityController 
       'item_id' => NULL,
       'type' => '',
       'status' => 1,
-      'item_label' => '',
       'created' => '',
       'changed' => '',
     );
@@ -88,7 +87,7 @@ class CommerceBundleItemEntityController extends DrupalCommerceEntityController 
     if (!empty($entity_ids)) {
       $entities = $this->load($entity_ids, array());
 
-      // Ensure the products can actually be deleted.
+      // Ensure the bundle items can actually be deleted.
       foreach ((array) $entities as $entity_id => $entity) {
         if (!commerce_bundle_item_can_delete($entity)) {
           unset($entities[$entity_id]);
@@ -106,5 +105,30 @@ class CommerceBundleItemEntityController extends DrupalCommerceEntityController 
     else {
       return FALSE;
     }
+  }
+
+  /**
+   * Builds a structured array representing the entity's content.
+   *
+   * The content built for the entity will vary depending on the $view_mode
+   * parameter.
+   *
+   * @param $entity
+   *   An entity object.
+   * @param $view_mode
+   *   View mode, e.g. 'full', 'teaser'...
+   * @param $langcode
+   *   (optional) A language code to use for rendering. Defaults to the global
+   *   content language of the current request.
+   * @return
+   *   The renderable array.
+   */
+  public function buildContent($entity, $view_mode = 'full', $langcode = NULL, $content = array()) {
+    // Add the default fields inherent to the entity.
+    $content['status'] = array(
+      '#markup' => theme('commerce_bundle_item_status', array('status' => $entity->status, 'label' => t('Status:'), 'entity' => $entity)),
+    );
+
+    return parent::buildContent($entity, $view_mode, $langcode, $content);
   }
 }

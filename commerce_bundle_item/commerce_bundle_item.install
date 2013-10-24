@@ -22,12 +22,6 @@ function commerce_bundle_item_schema() {
         'not null' => TRUE,
         'default' => '',
       ),
-      'item_label' => array(
-        'description' => 'The label of this bundle item.',
-        'type' => 'varchar',
-        'length' => 255,
-        'default' => '',
-      ),
       'status' => array(
         'description' => 'Boolean indicating whether or not the bundle item is active.',
         'type' => 'int',
