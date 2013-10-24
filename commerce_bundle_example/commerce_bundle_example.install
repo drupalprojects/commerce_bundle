@@ -1,0 +1,139 @@
+<?php
+/**
+ * @file
+ * Install, update and uninstall fns for the Commerce Bundle Example module.
+ */
+
+/**
+ * Field config and instance definitions.
+ *
+ * @return array
+ *   The fields and their instances, keyed by field name, this module creates.
+ */
+function commerce_bundle_example_create_product_type_field($product_type) {
+
+  $field = array();
+  $field_name = substr($product_type . '_group_in_bundle', 0, 32);
+
+  // Field configuration.
+  $field['field_config'] = array(
+    'active' => 1,
+    'cardinality' => -1,
+    'deleted' => 0,
+    'entity_types' => array(),
+    'field_name' => $field_name,
+    'foreign keys' => array(
+      'node' => array(
+        'columns' => array(
+          'target_id' => 'nid',
+        ),
+        'table' => 'node',
+      ),
+    ),
+    'indexes' => array(
+      'target_id' => array(
+        0 => 'target_id',
+      ),
+    ),
+    'locked' => 0,
+    'module' => 'entityreference',
+    'settings' => array(
+      'handler' => 'base',
+      'handler_settings' => array(
+        'behaviors' => array(
+          'views-select-list' => array(
+            'status' => 0,
+          ),
+        ),
+        'sort' => array(
+          'type' => 'none',
+        ),
+        'target_bundles' => array(),
+      ),
+      'target_type' => 'commerce_bundle_item',
+    ),
+    'translatable' => 0,
+    'type' => 'entityreference',
+  );
+
+  // Field instance configuration.
+  $field['field_instance'] = array(
+    'bundle' => 'bundle_example',
+    'deleted' => 0,
+    'description' => '',
+    'display' => array(
+      'default' => array(
+        'label' => 'above',
+        'module' => 'entityreference',
+        'settings' => array(
+          'link' => FALSE,
+        ),
+        'type' => 'entityreference_label',
+        'weight' => 0,
+      ),
+      'teaser' => array(
+        'label' => 'above',
+        'settings' => array(),
+        'type' => 'hidden',
+        'weight' => 0,
+      ),
+    ),
+    'entity_type' => 'node',
+    'field_name' => $field_name,
+    'label' => 'bundle_example',
+    'required' => 0,
+    'settings' => array(
+      'user_register_form' => FALSE,
+    ),
+    'widget' => array(
+      'active' => 1,
+      'module' => 'inline_entity_form',
+      'settings' => array(
+        'fields' => array(),
+        'type_settings' => array(),
+      ),
+      'type' => 'inline_entity_form',
+      'weight' => -4,
+    ),
+  );
+
+  // Translatables
+  // Included for use with string extractors like potx.
+  t('bundle_example');
+
+  return $field;
+}
+
+/**
+ * Implements hook_install().
+ */
+function commerce_bundle_example_install() {
+  // Get all currently defined product types.
+  $product_types = commerce_product_types();
+  foreach ($product_types as $type => $data) {
+    // Get the field definition.
+    $field = commerce_bundle_example_create_product_type_field($type);
+
+    // Look for existing field.
+    $field_config = field_info_field($field['field_config']['field_name']);
+    if (empty($field_config)) {
+      field_create_field($field['field_config']);
+    }
+
+    // Look for existing instance.
+    $instance = field_info_instance($field['field_instance']['entity_type'], $field['field_config']['field_name'], $field['field_instance']['bundle']);
+    if (empty($instance)) {
+      field_create_instance($field['field_instance']);
+    }
+  }
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function commerce_bundle_example_uninstall() {
+  // Remove the module provided bundle (content type).
+  node_type_delete('bundle_example');
+  // Remove all fields on the bundle.
+  field_attach_delete_bundle('node', 'bundle_example');
+}
