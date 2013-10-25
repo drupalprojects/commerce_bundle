@@ -80,7 +80,7 @@ function commerce_bundle_example_create_product_type_field($product_type) {
     ),
     'entity_type' => 'node',
     'field_name' => $field_name,
-    'label' => 'bundle_example',
+    'label' => $field_name,
     'required' => 0,
     'settings' => array(
       'user_register_form' => FALSE,
