@@ -14,7 +14,7 @@ function commerce_bundle_example_node_info() {
       'base' => 'node_content',
       'description' => t('Example bundle with entity reference fields for each defined product type.'),
       'has_title' => '1',
-      'title_label' => t('Title'),
+      'title_label' => t('Bundle Title'),
       'help' => '',
     ),
   );

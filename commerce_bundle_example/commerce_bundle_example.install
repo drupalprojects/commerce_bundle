@@ -13,7 +13,7 @@
 function commerce_bundle_example_create_product_type_field($product_type) {
 
   $field = array();
-  $field_name = substr($product_type . '_group_in_bundle', 0, 32);
+  $field_name = substr($product_type . '_group', 0, 32);
 
   // Field configuration.
   $field['field_config'] = array(
