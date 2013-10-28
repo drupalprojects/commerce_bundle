@@ -333,7 +333,11 @@ function commerce_bundle_item_quantity_create_instance($field_name, $entity_type
 
       'label' => $label,
       'required' => TRUE,
-      'default_value' => 1,
+      'default_value' => array(
+        0 => array(
+          'value' => 1,
+        ),
+      ),
       'settings' => array(
         'min' => 0,
       ),
