@@ -50,3 +50,26 @@ function commerce_bundle_item_schema() {
 
   return $schema;
 }
+
+/**
+ * Implementation of hook_requirements().
+ */
+function commerce_bundle_item_requirements($phase) {
+  $t = get_t();
+  $requirements = array();
+
+  if (module_exists('entity')) {
+    $path = drupal_get_path('module', 'entity') . '/entity.info';
+    $info = drupal_parse_info_file($path);
+    if (isset($info['version']) && !version_compare($info['version'], '7.x-1.2', '>=')) {
+      $requirements['commerce_bundle_item_entity'] = array(
+        'title' => $t('Entity'),
+        'value' => $t('Less than 7.x-1.2'),
+        'severity' => REQUIREMENT_ERROR,
+        'description' => $t('Commerce Bundle Item requires Entity 7.x-1.2+'),
+      );
+    }
+  }
+
+  return $requirements;
+}
