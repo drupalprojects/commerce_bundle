@@ -98,4 +98,6 @@ function commerce_bundle_item_form_submit($form, &$form_state) {
 
   // Save the entity.
   $entity->save();
+
+  drupal_set_message(t('Item saved.'));
 }
