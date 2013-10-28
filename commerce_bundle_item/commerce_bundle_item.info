@@ -5,7 +5,7 @@ dependencies[] = commerce
 dependencies[] = commerce_product_reference
 dependencies[] = commerce_price
 dependencies[] = entity
-dependencies[] = text
+dependencies[] = number
 core = 7.x
 
 ; Entity includes

@@ -112,7 +112,6 @@ function commerce_bundle_item_entity_info() {
   return $return;
 }
 
-
 /**
  * Implements hook_menu().
  */
@@ -165,13 +164,37 @@ function commerce_bundle_item_menu_alter(&$items) {
 }
 
 /**
- * Returns the options list for the bundle item status property.
+ * Implements hook_enable().
  */
-function commerce_bundle_item_status_options_list() {
-  return array(
-    0 => t('Disabled'),
-    1 => t('Active'),
+function commerce_bundle_item_enable() {
+  commerce_bundle_item_configure_types();
+}
+
+/**
+ * Implements hook_modules_enabled().
+ */
+function commerce_bundle_item_modules_enabled($modules) {
+  commerce_bundle_item_configure_modules($modules);
+}
+
+
+// -----------------------------------------------------------------------
+// Bundle item types
+
+/**
+ * Implements hook_commerce_bundle_item_type_info()
+ * Define the default bundle
+ */
+function commerce_bundle_item_commerce_bundle_item_type_info() {
+  $item_types = array();
+
+  $item_types['bundle_item'] = array(
+    'type' => 'bundle_item',
+    'name' => t('Bundle item'),
+    'description' => t('The default bundle item type.'),
   );
+
+  return $item_types;
 }
 
 /**
@@ -203,26 +226,134 @@ function commerce_bundle_item_field_extra_fields() {
   return $extra;
 }
 
-
-// -----------------------------------------------------------------------
-// Bundle item types
-
 /**
- * Implements hook_commerce_bundle_item_type_info()
- * Define the default bundle
+ * Configure the bundle item types defined by enabled modules.
  */
-function commerce_bundle_item_commerce_bundle_item_type_info() {
-  $item_types = array();
+function commerce_bundle_item_configure_types($types = NULL) {
+  if (isset($types)) {
+    if (empty($types) || !is_array($types)) {
+      return;
+    }
+  }
+  else {
+    $types = commerce_bundle_item_types();
+  }
 
-  $item_types['bundle_item'] = array(
-    'type' => 'bundle_item',
-    'name' => t('Bundle item'),
-    'description' => t('The default bundle item type.'),
-  );
-
-  return $item_types;
+  foreach ($types as $type => $item_type) {
+    commerce_bundle_item_configure_type($type);
+  }
 }
 
+/**
+ * Ensures the basic fields are present on a bundle item type.
+ */
+function commerce_bundle_item_configure_type($type) {
+  commerce_product_reference_create_instance('commerce_bundle_product', 'commerce_bundle_item', $type, t('Product'), -5);
+  commerce_price_create_instance('commerce_bundle_price', 'commerce_bundle_item', $type, t('Price'), -4);
+  commerce_bundle_item_quantity_create_instance('commerce_bundle_quantity', 'commerce_bundle_item', $type, t('Quantity'), -3);
+}
+
+/**
+ * Configures the fields on bundle item types provided by other modules.
+ *
+ * @param $modules
+ *   An array of module names whose item type fields should be configured;
+ *   if left NULL, will default to all modules that implement
+ *   hook_commerce_bundle_item_type_info().
+ */
+function commerce_bundle_item_configure_modules($modules = NULL) {
+  // If no modules array is passed, recheck the fields for all item types
+  // defined by enabled modules.
+  if (empty($modules)) {
+    $modules = module_implements('commerce_bundle_item_type_info');
+  }
+
+  // Reset the bundle item type cache to get types added by newly enabled modules.
+  commerce_bundle_item_types_reset();
+
+  // Loop through all the enabled modules.
+  foreach ($modules as $module) {
+    // If the module implements hook_commerce_bundle_item_type_info()...
+    if (module_hook($module, 'commerce_bundle_item_type_info')) {
+      $types = module_invoke($module, 'commerce_bundle_item_type_info');
+      if ($types) {
+        commerce_bundle_item_configure_types($types);
+      }
+    }
+  }
+}
+
+
+/**
+ * Creates a required, locked instance of a quantity field on the specified bundle.
+ *
+ * @param $field_name
+ *   The name of the field; if it already exists, a new instance of the existing
+ *     field will be created. For fields governed by the Commerce modules, this
+ *     should begin with commerce_.
+ * @param $entity_type
+ *   The type of entity the field instance will be attached to.
+ * @param $bundle
+ *   The bundle name of the entity the field instance will be attached to.
+ * @param $label
+ *   The label of the field instance.
+ * @param $weight
+ *   The default weight of the field instance widget and display.
+ * @param $calculation
+ *   A string indicating the default value of the display formatter's calculation
+ *     setting.
+ * @param $display
+ *   An array of default display data used for the entity's current view modes.
+ */
+function commerce_bundle_item_quantity_create_instance($field_name, $entity_type, $bundle, $label, $weight = 0, $display = array()) {
+  // Look for or add the specified price field to the requested entity bundle.
+  commerce_activate_field($field_name);
+  field_cache_clear();
+
+  $field = field_info_field($field_name);
+  $instance = field_info_instance($entity_type, $field_name, $bundle);
+
+  if (empty($field)) {
+    $field = array(
+      'field_name' => $field_name,
+      'type' => 'number_integer',
+      'cardinality' => 1,
+      'entity_types' => array($entity_type),
+      'translatable' => FALSE,
+      'locked' => TRUE,
+    );
+    $field = field_create_field($field);
+  }
+
+  if (empty($instance)) {
+    $instance = array(
+      'field_name' => $field_name,
+      'entity_type' => $entity_type,
+      'bundle' => $bundle,
+
+      'label' => $label,
+      'required' => TRUE,
+      'settings' => array(
+        'min' => 0,
+      ),
+      'widget' => array(
+        'type' => 'number',
+        'weight' => $weight,
+        'settings' => array(),
+      ),
+
+      'display' => array(
+        'default' => array(
+          'label' => 'inline',
+          'type' => 'number_integer',
+          'settings' => array(),
+        ),
+      ),
+    );
+
+    field_create_instance($instance);
+  }
+}
 
 /**
  * Returns an array of bundle item type arrays keyed by type.
@@ -378,6 +509,16 @@ function commerce_bundle_item_can_delete($entity) {
   // Returns FALSE the entity cannot be deleted.
   // Return TRUE if none return FALSE.
   return !in_array(FALSE, module_invoke_all('commerce_bundle_item_can_delete', $entity));
+}
+
+/**
+ * Returns the options list for the bundle item status property.
+ */
+function commerce_bundle_item_status_options_list() {
+  return array(
+    0 => t('Disabled'),
+    1 => t('Active'),
+  );
 }
 
 
