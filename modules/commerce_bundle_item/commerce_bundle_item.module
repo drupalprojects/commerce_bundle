@@ -248,7 +248,7 @@ function commerce_bundle_item_configure_types($types = NULL) {
  * Ensures the basic fields are present on a bundle item type.
  */
 function commerce_bundle_item_configure_type($type) {
-  commerce_product_reference_create_instance('commerce_bundle_product', 'commerce_bundle_item', $type, t('Product'), -5);
+  commerce_bundle_item_product_reference_create_instance('commerce_bundle_product', 'commerce_bundle_item', $type, t('Product'), -5);
   commerce_price_create_instance('commerce_bundle_price', 'commerce_bundle_item', $type, t('Price'), -4);
   commerce_bundle_item_quantity_create_instance('commerce_bundle_quantity', 'commerce_bundle_item', $type, t('Quantity'), -3);
 }
@@ -283,6 +283,77 @@ function commerce_bundle_item_configure_modules($modules = NULL) {
   }
 }
 
+/**
+ * Creates a required, locked instance of a product reference field on the
+ * specified bundle.
+ *
+ * Based on commerce_product_reference_create_instance() with the added
+ * display settings and input
+ *
+ * @param $field_name
+ *   The name of the field; if it already exists, a new instance of the existing
+ *     field will be created. For fields governed by the Commerce modules, this
+ *     should begin with commerce_.
+ * @param $entity_type
+ *   The type of entity the field instance will be attached to.
+ * @param $bundle
+ *   The bundle name of the entity the field instance will be attached to.
+ * @param $label
+ *   The label of the field instance.
+ * @param $weight
+ *   The default weight of the field instance widget and display.
+ */
+function commerce_bundle_item_product_reference_create_instance($field_name, $entity_type, $bundle, $label, $weight = 0, $display = array()) {
+  // Look for or add the specified field to the requested entity bundle.
+  commerce_activate_field($field_name);
+  field_cache_clear();
+
+  $field = field_info_field($field_name);
+  $instance = field_info_instance($entity_type, $field_name, $bundle);
+
+  if (empty($field)) {
+    $field = array(
+      'field_name' => $field_name,
+      'type' => 'commerce_product_reference',
+      'cardinality' => 1,
+      'entity_types' => array($entity_type),
+      'translatable' => FALSE,
+      'locked' => TRUE,
+    );
+    $field = field_create_field($field);
+  }
+
+  if (empty($instance)) {
+    $instance = array(
+      'field_name' => $field_name,
+      'entity_type' => $entity_type,
+      'bundle' => $bundle,
+
+      'label' => $label,
+      'required' => TRUE,
+      'settings' => array(),
+
+      'widget' => array(
+        'type' => 'commerce_product_reference_autocomplete',
+        'weight' => $weight,
+      ),
+
+      'display' => array(
+        'default' => array(
+          'label' => 'hidden',
+          'type' => 'commerce_product_reference_title_link',
+          'weight' => $weight,
+        ),
+      ),
+    );
+
+    if (!empty($display)) {
+      $instance['display'] = $display + $instance['display'];
+    }
+
+    field_create_instance($instance);
+  }
+}
 
 /**
  * Creates a required, locked instance of a quantity field on the specified bundle.
@@ -356,6 +427,10 @@ function commerce_bundle_item_quantity_create_instance($field_name, $entity_type
       ),
     );
 
+    if (!empty($display)) {
+      $instance['display'] = $display + $instance['display'];
+    }
+    
     field_create_instance($instance);
   }
 }
