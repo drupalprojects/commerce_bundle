@@ -40,25 +40,32 @@ class CommerceBundleItemInlineEntityFormController extends EntityInlineEntityFor
       }
     }
 
-/*
-@todo: always add locked fields once implemented: commerce_price, commerce_product
-    if (!isset($fields['commerce_product'])) {
-      $fields['commerce_product'] = array(
+    // Always add base fields
+    if (!isset($fields['commerce_bundle_product'])) {
+      $fields['commerce_bundle_product'] = array(
         'type' => 'field',
-        'label' => t('Price'),
-        'formatter' => 'commerce_price_formatted_amount',
+        'label' => t('Product'),
+        'formatter' => 'commerce_product_reference_title_plain',
         'weight' => -99,
       );
     }
-    if (!isset($fields['commerce_price'])) {
-      $fields['commerce_price'] = array(
+    if (!isset($fields['commerce_bundle_price'])) {
+      $fields['commerce_bundle_price'] = array(
         'type' => 'field',
         'label' => t('Price'),
         'formatter' => 'commerce_price_formatted_amount',
         'weight' => -98,
       );
     }
-*/
+    if (!isset($fields['commerce_bundle_quantity'])) {
+      $fields['commerce_bundle_quantity'] = array(
+        'type' => 'field',
+        'label' => t('Quantity'),
+        'formatter' => 'number_integer',
+        'weight' => -97,
+      );
+    }
+
     $fields['status'] = array(
       'type' => 'property',
       'label' => t('Status'),
