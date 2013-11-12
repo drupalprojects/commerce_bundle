@@ -13,13 +13,13 @@
 function commerce_bundle_installed_fields() {
   $fields = array();
 
-  // Field bundle_id configuration.
-  $fields['bundle_id']['field_config'] = array(
+  // Field commerce_bundle_id configuration.
+  $fields['commerce_bundle_id']['field_config'] = array(
     'active' => 1,
     'cardinality' => 1,
     'deleted' => 0,
     'entity_types' => array(),
-    'field_name' => 'bundle_id',
+    'field_name' => 'commerce_bundle_id',
     'foreign keys' => array(
       'node' => array(
         'columns' => array(
@@ -54,15 +54,15 @@ function commerce_bundle_installed_fields() {
     'type' => 'entityreference',
   );
 
-  // Field bundle_id instance on Product Bundle Line Item.
-  $fields['bundle_id']['field_instance'] = array(
+  // Field commerce_bundle_id instance on Product Bundle Line Item.
+  $fields['commerce_bundle_id']['field_instance'] = array(
     'bundle' => 'product_bundle',
     'commerce_cart_settings' => array(
       'field_access' => 0,
     ),
     'default_value' => NULL,
     'deleted' => 0,
-    'description' => '',
+    'description' => 'The bundle display node ID.',
     'display' => array(
       'default' => array(
         'label' => 'above',
@@ -75,7 +75,7 @@ function commerce_bundle_installed_fields() {
       ),
     ),
     'entity_type' => 'commerce_line_item',
-    'field_name' => 'bundle_id',
+    'field_name' => 'commerce_bundle_id',
     'label' => 'Bundle ID',
     'required' => 1,
     'settings' => array(
@@ -94,13 +94,13 @@ function commerce_bundle_installed_fields() {
     ),
   );
 
-  // Field bundle_item_id configuration.
-  $fields['bundle_item_id']['field_config'] = array(
+  // Field commerce_bundle_item_id configuration.
+  $fields['commerce_bundle_item_id']['field_config'] = array(
     'active' => 1,
     'cardinality' => 1,
     'deleted' => 0,
     'entity_types' => array(),
-    'field_name' => 'bundle_item_id',
+    'field_name' => 'commerce_bundle_item_id',
     'foreign keys' => array(
       'node' => array(
         'columns' => array(
@@ -135,15 +135,15 @@ function commerce_bundle_installed_fields() {
     'type' => 'entityreference',
   );
 
-  // Field bundle_item_id instance on Product Bundle Line Item.
-  $fields['bundle_item_id']['field_instance'] = array(
+  // Field commerce_bundle_item_id instance on Product Bundle Line Item.
+  $fields['commerce_bundle_item_id']['field_instance'] = array(
     'bundle' => 'product_bundle',
     'commerce_cart_settings' => array(
       'field_access' => 0,
     ),
     'default_value' => NULL,
     'deleted' => 0,
-    'description' => '',
+    'description' => 'The bundle item entity ID.',
     'display' => array(
       'default' => array(
         'label' => 'above',
@@ -156,7 +156,7 @@ function commerce_bundle_installed_fields() {
       ),
     ),
     'entity_type' => 'commerce_line_item',
-    'field_name' => 'bundle_item_id',
+    'field_name' => 'commerce_bundle_item_id',
     'label' => 'Bundle Item ID',
     'required' => 1,
     'settings' => array(
