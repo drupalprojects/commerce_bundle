@@ -8,4 +8,7 @@ dependencies[] = commerce_bundle_item
 dependencies[] = entityreference
 core = 7.x
 
+; Views
+files[] = includes/views/handlers/commerce_bundle_handler_field_line_item_title.inc
+
 
