@@ -105,3 +105,13 @@ function commerce_bundle_views_post_execute(&$view) {
     }
   }
 }
+
+/**
+ * Implements hook_views_api().
+ */
+function commerce_bundle_views_api() {
+  return array(
+    'api' => 3,
+    'path' => drupal_get_path('module', 'commerce_bundle') . '/includes/views',
+  );
+}
