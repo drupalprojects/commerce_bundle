@@ -193,7 +193,7 @@ function commerce_bundle_installed_fields() {
 
   // Field unit_quantity instance on Product Bundle Line Item.
   $fields['unit_quantity']['field_instance'] = array(
-    'bundle' => 'bundle_product',
+    'bundle' => 'bundle_group',
     'commerce_cart_settings' => array(
       'field_access' => 0,
     ),
@@ -214,7 +214,7 @@ function commerce_bundle_installed_fields() {
         'weight' => 4,
       ),
     ),
-    'entity_type' => 'commerce_line_item',
+    'entity_type' => 'commerce_product',
     'field_name' => 'unit_quantity',
     'label' => 'Unit Quantity',
     'required' => 1,
