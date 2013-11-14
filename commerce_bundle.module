@@ -94,11 +94,11 @@ function commerce_bundle_views_post_execute(&$view) {
 
         if (!$previous_entity || $previous_entity->type != 'bundle_product' || $previous_entity->commerce_bundle_id != $current_entity->commerce_bundle_id) {
           // It's  a first bundle line item in the group. Add a control row above the current row.
+          $current_entity_wrapper = entity_metadata_wrapper('commerce_line_item', $current_entity);
           $new_row = new stdClass();
           $new_row->_field_data[$alias]['entity_type'] = 'bundle_control';
-          $new_row->_field_data[$alias]['entity'] = new stdClass();
-          $new_row->_field_data[$alias]['entity']->type = 'bundle_product';
-          $new_row->_field_data[$alias]['entity']->commerce_bundle_id = $current_entity->commerce_bundle_id;
+          $new_row->_field_data[$alias]['commerce_bundle_id'] = $current_entity_wrapper->commerce_bundle_id->value();
+          $new_row->_field_data[$alias]['commerce_product'] = $current_entity_wrapper->commerce_product->value();
           array_splice($view->result, $row_index, 0, array($new_row));
         }
       }
