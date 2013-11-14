@@ -40,10 +40,10 @@ return TRUE;
 function commerce_bundle_commerce_line_item_type_info() {
   $line_item_types = array();
 
-  $line_item_types['product_bundle'] = array(
-    'type' => 'product_bundle',
-    'name' => t('Product Bundle'),
-    'description' => t('References a Product Bundle.'),
+  $line_item_types['bundle_product'] = array(
+    'type' => 'bundle_product',
+    'name' => t('Bundle Product'),
+    'description' => t('References a Bundle Product.'),
     'product' => TRUE,
     'add_form_submit_value' => t('Add bundle'),
     'base' => 'commerce_product_line_item',
@@ -86,18 +86,18 @@ function commerce_bundle_views_post_execute(&$view) {
       // Extract the entities for each result.
       foreach ($view->result as $row_index => $current_row) {
         $current_entity = $current_row->_field_data[$alias]['entity'];
-        if ($current_entity->type != 'product_bundle') {
+        if ($current_entity->type != 'bundle_product') {
           // We don't care about anything but bundle line items.
           continue;
         }
         $previous_entity = (isset($view->result[$row_index - 1])) ? $view->result[$row_index - 1]->_field_data[$alias]['entity'] : FALSE;
 
-        if (!$previous_entity || $previous_entity->type != 'product_bundle' || $previous_entity->commerce_bundle_id != $current_entity->commerce_bundle_id) {
+        if (!$previous_entity || $previous_entity->type != 'bundle_product' || $previous_entity->commerce_bundle_id != $current_entity->commerce_bundle_id) {
           // It's  a first bundle line item in the group. Add a control row above the current row.
           $new_row = new stdClass();
           $new_row->_field_data[$alias]['entity_type'] = 'bundle_control';
           $new_row->_field_data[$alias]['entity'] = new stdClass();
-          $new_row->_field_data[$alias]['entity']->type = 'product_bundle';
+          $new_row->_field_data[$alias]['entity']->type = 'bundle_product';
           $new_row->_field_data[$alias]['entity']->commerce_bundle_id = $current_entity->commerce_bundle_id;
           array_splice($view->result, $row_index, 0, array($new_row));
         }
