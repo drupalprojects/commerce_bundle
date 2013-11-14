@@ -323,6 +323,16 @@ function commerce_bundle_installed_fields() {
  */
 function commerce_bundle_install() {
 
+  // Create the bundle group product type.
+  $product_type = commerce_product_ui_product_type_new();
+
+  $product_type['type'] = 'bundle_group';
+  $product_type['name'] = t('Bundle Group');
+  $product_type['description'] = t('A group of related products e.g. t-shirt with attributes of color, and size.');
+  $product_type['is_new'] = TRUE;
+
+  commerce_product_ui_product_type_save($product_type, FALSE);
+
   $fields = commerce_bundle_installed_fields();
   // Add all fields and their instances.
   foreach ($fields as $field) {
