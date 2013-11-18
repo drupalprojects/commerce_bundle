@@ -331,7 +331,7 @@ function commerce_bundle_install() {
   $product_type['description'] = t('A group of related products e.g. t-shirt with attributes of color, and size.');
   $product_type['is_new'] = TRUE;
 
-  commerce_product_ui_product_type_save($product_type, FALSE);
+  commerce_product_ui_product_type_save($product_type, TRUE);
 
   $fields = commerce_bundle_installed_fields();
   // Add all fields and their instances.
@@ -353,8 +353,9 @@ function commerce_bundle_install() {
  * Implements hook_uninstall().
  */
 function commerce_bundle_uninstall() {
-  // Delete any field instance attached to the line item bundle
-  // 'bundle_product'.
+  // Delete field instances attached to commerce entity types this module
+  // creates.
   module_load_include('module', 'commerce');
   commerce_delete_instances('commerce_line_item', 'bundle_product');
+  commerce_delete_instances('commerce_product', 'bundle_group');
 }
