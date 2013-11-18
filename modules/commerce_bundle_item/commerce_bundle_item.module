@@ -5,7 +5,6 @@
  * Provides an entity to store details when a product is part of a bundle.
  */
 
-
 /**
  * Implements hook_hook_info().
  */
@@ -51,6 +50,7 @@ function commerce_bundle_item_entity_info() {
     ),
     'bundles' => array(),
     'load hook' => 'commerce_bundle_item_load',
+    'label callback' => 'commerce_bundle_item_label',
     'view modes' => array(
       'admin' => array(
         'label' => t('Admin'),
@@ -248,9 +248,61 @@ function commerce_bundle_item_configure_types($types = NULL) {
  * Ensures the basic fields are present on a bundle item type.
  */
 function commerce_bundle_item_configure_type($type) {
-  commerce_bundle_item_product_reference_create_instance('commerce_bundle_product', 'commerce_bundle_item', $type, t('Product'), -5);
-  commerce_price_create_instance('commerce_bundle_price', 'commerce_bundle_item', $type, t('Price'), -4);
-  commerce_bundle_item_quantity_create_instance('commerce_bundle_quantity', 'commerce_bundle_item', $type, t('Quantity'), -3);
+  module_load_include('inc', 'commerce_bundle_item', 'includes/commerce_bundle_item.field');
+  $entity_type = 'commerce_bundle_item';
+
+  // Get managed field defintions
+  $default_fields = _commerce_bundle_item_type_default_fields($type);
+  if (empty($default_fields['fields'])) {
+    return;
+  }
+
+  // Clear the cache
+  field_cache_clear();
+
+  // Get the entity view modes
+  $entity_info = entity_get_info($entity_type);
+
+  // Create available view modes
+  $view_modes = array('default', 'admin');
+  if (!empty($entity_info['view modes'])) {
+    $view_modes = array_intersect($view_modes, array_keys($entity_info['view modes']));
+  }
+
+  // Create fields & instances if necessary.
+  $weight = 10;
+  foreach($default_fields['fields'] as $field_name => $default_field) {
+    commerce_activate_field($field_name);
+
+    $field = field_info_field($field_name);
+    $instance = field_info_instance($entity_type, $field_name, $type);
+
+    if (empty($field)) {
+      field_create_field($default_field);
+    }
+
+    if (empty($instance) && !empty($default_fields['instances'][$field_name])) {
+      $instance = $default_fields['instances'][$field_name];
+
+      $default_display = array();
+      if (isset($instance['display']['default'])) {
+        $default_display = $instance['display']['default'];
+      }
+
+      foreach ($view_modes as $view_mode => $data) {
+        $display = $default_display;
+        if (isset($instance['display'][$view_mode])) {
+          $display = $instance['display'][$view_mode];
+        }
+
+        $instance['display'][$view_mode] = $display + array(
+          'weight' => $weight++,
+        );
+      }
+
+      field_create_instance($instance);
+    }
+  }
 }
 
 /**
@@ -280,158 +332,6 @@ function commerce_bundle_item_configure_modules($modules = NULL) {
         commerce_bundle_item_configure_types($types);
       }
     }
-  }
-}
-
-/**
- * Creates a required, locked instance of a product reference field on the
- * specified bundle.
- *
- * Based on commerce_product_reference_create_instance() with the added
- * display settings and input
- *
- * @param $field_name
- *   The name of the field; if it already exists, a new instance of the existing
- *     field will be created. For fields governed by the Commerce modules, this
- *     should begin with commerce_.
- * @param $entity_type
- *   The type of entity the field instance will be attached to.
- * @param $bundle
- *   The bundle name of the entity the field instance will be attached to.
- * @param $label
- *   The label of the field instance.
- * @param $weight
- *   The default weight of the field instance widget and display.
- */
-function commerce_bundle_item_product_reference_create_instance($field_name, $entity_type, $bundle, $label, $weight = 0, $display = array()) {
-  // Look for or add the specified field to the requested entity bundle.
-  commerce_activate_field($field_name);
-  field_cache_clear();
-
-  $field = field_info_field($field_name);
-  $instance = field_info_instance($entity_type, $field_name, $bundle);
-
-  if (empty($field)) {
-    $field = array(
-      'field_name' => $field_name,
-      'type' => 'commerce_product_reference',
-      'cardinality' => 1,
-      'entity_types' => array($entity_type),
-      'translatable' => FALSE,
-      'locked' => TRUE,
-    );
-    $field = field_create_field($field);
-  }
-
-  if (empty($instance)) {
-    $instance = array(
-      'field_name' => $field_name,
-      'entity_type' => $entity_type,
-      'bundle' => $bundle,
-
-      'label' => $label,
-      'required' => TRUE,
-      'settings' => array(),
-
-      'widget' => array(
-        'type' => 'commerce_product_reference_autocomplete',
-        'weight' => $weight,
-      ),
-
-      'display' => array(
-        'default' => array(
-          'label' => 'hidden',
-          'type' => 'commerce_product_reference_title_link',
-          'weight' => $weight,
-        ),
-      ),
-    );
-
-    if (!empty($display)) {
-      $instance['display'] = $display + $instance['display'];
-    }
-
-    field_create_instance($instance);
-  }
-}
-
-/**
- * Creates a required, locked instance of a quantity field on the specified bundle.
- *
- * @param $field_name
- *   The name of the field; if it already exists, a new instance of the existing
- *     field will be created. For fields governed by the Commerce modules, this
- *     should begin with commerce_.
- * @param $entity_type
- *   The type of entity the field instance will be attached to.
- * @param $bundle
- *   The bundle name of the entity the field instance will be attached to.
- * @param $label
- *   The label of the field instance.
- * @param $weight
- *   The default weight of the field instance widget and display.
- * @param $calculation
- *   A string indicating the default value of the display formatter's calculation
- *     setting.
- * @param $display
- *   An array of default display data used for the entity's current view modes.
- */
-function commerce_bundle_item_quantity_create_instance($field_name, $entity_type, $bundle, $label, $weight = 0, $display = array()) {
-  // Look for or add the specified price field to the requested entity bundle.
-  commerce_activate_field($field_name);
-  field_cache_clear();
-
-  $field = field_info_field($field_name);
-  $instance = field_info_instance($entity_type, $field_name, $bundle);
-
-  if (empty($field)) {
-    $field = array(
-      'field_name' => $field_name,
-      'type' => 'number_integer',
-      'cardinality' => 1,
-      'entity_types' => array($entity_type),
-      'translatable' => FALSE,
-      'locked' => TRUE,
-    );
-    $field = field_create_field($field);
-  }
-
-  if (empty($instance)) {
-    $instance = array(
-      'field_name' => $field_name,
-      'entity_type' => $entity_type,
-      'bundle' => $bundle,
-
-      'label' => $label,
-      'required' => TRUE,
-      'default_value' => array(
-        0 => array(
-          'value' => 1,
-        ),
-      ),
-      'settings' => array(
-        'min' => 0,
-      ),
-      'widget' => array(
-        'type' => 'number',
-        'weight' => $weight,
-        'settings' => array(),
-      ),
-
-      'display' => array(
-        'default' => array(
-          'label' => 'inline',
-          'type' => 'number_integer',
-          'settings' => array(),
-        ),
-      ),
-    );
-
-    if (!empty($display)) {
-      $instance['display'] = $display + $instance['display'];
-    }
-    
-    field_create_instance($instance);
   }
 }
 
@@ -566,6 +466,18 @@ function commerce_bundle_item_permission() {
  */
 function commerce_bundle_item_load($item_id) {
   return entity_load_single('commerce_bundle_item', $item_id);
+}
+
+/**
+ * Implements callback_entity_info_label() for bundle items.
+ */
+function commerce_bundle_item_label($entity, $entity_type) {
+  $entity_wrapper = entity_metadata_wrapper($entity_type, $entity);
+
+  if ($product = $entity_wrapper->commerce_bundle_product->value()) {
+    return entity_label('commerce_product', $product);
+  }
+  return isset($entity->item_id) ? $entity->item_id : 'item';
 }
 
 /**

@@ -15,9 +15,9 @@
 <?php if ($status): ?>
   <div class="commerce-bundle-item-status">
     <?php if ($label): ?>
-      <div class="commerce-bundle-item-status-label">
+      <span class="commerce-bundle-item-status-label">
         <?php print $label; ?>
-      </div>
+      </span>
     <?php endif; ?>
     <?php print $status; ?>
   </div>

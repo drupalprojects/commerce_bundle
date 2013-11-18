@@ -12,31 +12,46 @@ class CommerceBundleItemInlineEntityFormController extends EntityInlineEntityFor
   public function tableFields($bundles) {
     $fields = array();
 
+    // Get managed / default fields.
+    $managed_fields = array('commerce_bundle_product', 'commerce_bundle_price');
+
     // If only one type is allowed, its fields can be used as columns.
     if (count($bundles) == 1) {
+      // Get first bundle
       $bundle = reset($bundles);
 
-/** @todo: should limit this to only controlled / locked fields ***/
+      // Display managed && required fields
+      $display_view_mode = NULL;
       foreach (field_info_instances($this->entityType, $bundle) as $field_name => $instance) {
         $field = field_info_field($field_name);
         $field_formatter = 'default';
         $field_weight = 0;
 
-        foreach (array('admin_ief', 'default') as $view_mode) {
-          if (isset($instance['display'][$view_mode]['type']) && $instance['display'][$view_mode]['type'] != 'hidden') {
-            $field_formatter = $instance['display'][$view_mode]['type'];
-            $field_weight = $instance['display'][$view_mode]['weight'];
-            break;
+        if (empty($instance['required']) || !in_array($field_name, $managed_fields)) {
+          continue;
+        }
+
+        if (!isset($display_view_mode)) {
+          foreach (array('admin_ief', 'default') as $view_mode) {
+            if (isset($instance['display'][$view_mode]['type']) && $instance['display'][$view_mode]['type'] != 'hidden') {
+              $display_view_mode = $view_mode;
+              break;
+            }
           }
         }
 
-        $fields[$field_name] = array(
-          'type' => 'field',
-          'label' => $instance['label'],
-          'weight' => $field_weight,
-          'formatter' => $field_formatter,
-          'delta' => 0,
-        );
+        if (isset($instance['display'][$display_view_mode]['type']) && $instance['display'][$display_view_mode]['type'] != 'hidden') {
+          $field_formatter = $instance['display'][$display_view_mode]['type'];
+          $field_weight = $instance['display'][$display_view_mode]['weight'];
+
+          $fields[$field_name] = array(
+            'type' => 'field',
+            'label' => $instance['label'],
+            'weight' => $field_weight,
+            'formatter' => $field_formatter,
+            'delta' => 0,
+          );
+        }
       }
     }
 
@@ -55,14 +70,6 @@ class CommerceBundleItemInlineEntityFormController extends EntityInlineEntityFor
         'label' => t('Price'),
         'formatter' => 'commerce_price_formatted_amount',
         'weight' => -98,
-      );
-    }
-    if (!isset($fields['commerce_bundle_quantity'])) {
-      $fields['commerce_bundle_quantity'] = array(
-        'type' => 'field',
-        'label' => t('Quantity'),
-        'formatter' => 'number_integer',
-        'weight' => -97,
       );
     }
 

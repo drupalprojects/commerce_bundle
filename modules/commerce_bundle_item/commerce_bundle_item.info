@@ -2,10 +2,9 @@ name = Commerce Bundle Item
 description = Provides an entity to store details when a product is part of a bundle.
 package = Commerce (contrib)
 dependencies[] = commerce
-dependencies[] = commerce_product_reference
 dependencies[] = commerce_price
 dependencies[] = entity
-dependencies[] = number
+dependencies[] = entityreference
 core = 7.x
 
 ; Entity includes
