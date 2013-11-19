@@ -14,7 +14,7 @@ function commerce_bundle_installed_fields() {
   $fields = array();
 
   // Field commerce_bundle_id configuration.
-  $fields['commerce_bundle_id']['field_config'] = array(
+  $fields['field_config']['commerce_bundle_id'] = array(
     'active' => 1,
     'cardinality' => 1,
     'deleted' => 0,
@@ -55,7 +55,7 @@ function commerce_bundle_installed_fields() {
   );
 
   // Field commerce_bundle_id instance on Product Bundle Line Item.
-  $fields['commerce_bundle_id']['field_instance'] = array(
+  $fields['field_instance']['commerce_bundle_id'] = array(
     'bundle' => 'bundle_product',
     'commerce_cart_settings' => array(
       'field_access' => 0,
@@ -95,7 +95,7 @@ function commerce_bundle_installed_fields() {
   );
 
   // Field commerce_bundle_item_id configuration.
-  $fields['commerce_bundle_item_id']['field_config'] = array(
+  $fields['field_config']['commerce_bundle_item_id'] = array(
     'active' => 1,
     'cardinality' => 1,
     'deleted' => 0,
@@ -136,7 +136,7 @@ function commerce_bundle_installed_fields() {
   );
 
   // Field commerce_bundle_item_id instance on Product Bundle Line Item.
-  $fields['commerce_bundle_item_id']['field_instance'] = array(
+  $fields['field_instance']['commerce_bundle_item_id'] = array(
     'bundle' => 'bundle_product',
     'commerce_cart_settings' => array(
       'field_access' => 0,
@@ -175,13 +175,13 @@ function commerce_bundle_installed_fields() {
     ),
   );
 
-  // Field unit_quantity configuration.
-  $fields['unit_quantity']['field_config'] = array(
+  // Field commerce_bundle_unit_quantity configuration.
+  $fields['field_config']['commerce_bundle_unit_quantity'] = array(
     'active' => 1,
     'cardinality' => 1,
     'deleted' => 0,
     'entity_types' => array(),
-    'field_name' => 'unit_quantity',
+    'field_name' => 'commerce_bundle_unit_quantity',
     'foreign keys' => array(),
     'indexes' => array(),
     'locked' => 0,
@@ -191,8 +191,8 @@ function commerce_bundle_installed_fields() {
     'type' => 'number_integer',
   );
 
-  // Field unit_quantity instance on Product Bundle Line Item.
-  $fields['unit_quantity']['field_instance'] = array(
+  // Field commerce_bundle_unit_quantity instance on Bundle Group Product Type.
+  $fields['field_instance']['commerce_bundle_unit_quantity_product_type'] = array(
     'bundle' => 'bundle_group',
     'commerce_cart_settings' => array(
       'field_access' => 0,
@@ -215,7 +215,51 @@ function commerce_bundle_installed_fields() {
       ),
     ),
     'entity_type' => 'commerce_product',
-    'field_name' => 'unit_quantity',
+    'field_name' => 'commerce_bundle_unit_quantity',
+    'label' => 'Unit Quantity',
+    'required' => 1,
+    'settings' => array(
+      'max' => '',
+      'min' => '',
+      'prefix' => '',
+      'suffix' => '',
+      'user_register_form' => FALSE,
+    ),
+    'widget' => array(
+      'active' => 0,
+      'module' => 'number',
+      'settings' => array(),
+      'type' => 'number',
+      'weight' => 2,
+    ),
+  );
+
+  // Field commerce_bundle_unit_quantity instance on Bundle Product Line Item
+  // Type.
+  $fields['field_instance']['commerce_bundle_unit_quantity_line_item'] = array(
+    'bundle' => 'bundle_product',
+    'commerce_cart_settings' => array(
+      'field_access' => 0,
+    ),
+    'default_value' => NULL,
+    'deleted' => 0,
+    'description' => '',
+    'display' => array(
+      'default' => array(
+        'label' => 'above',
+        'module' => 'number',
+        'settings' => array(
+          'decimal_separator' => '.',
+          'prefix_suffix' => TRUE,
+          'scale' => 0,
+          'thousand_separator' => ' ',
+        ),
+        'type' => 'number_integer',
+        'weight' => 4,
+      ),
+    ),
+    'entity_type' => 'commerce_line_item',
+    'field_name' => 'commerce_bundle_unit_quantity',
     'label' => 'Unit Quantity',
     'required' => 1,
     'settings' => array(
@@ -235,7 +279,7 @@ function commerce_bundle_installed_fields() {
   );
 
   // Field commerce_bundle_group_id configuration.
-  $fields['commerce_bundle_group_id']['field_config'] = array(
+  $fields['field_config']['commerce_bundle_group_id'] = array(
     'active' => 1,
     'cardinality' => 1,
     'deleted' => 0,
@@ -276,7 +320,7 @@ function commerce_bundle_installed_fields() {
   );
 
   // Field commerce_bundle_group_id instance on Product Bundle Line Item.
-  $fields['commerce_bundle_group_id']['field_instance'] = array(
+  $fields['field_instance']['commerce_bundle_group_id'] = array(
     'bundle' => 'bundle_product',
     'commerce_cart_settings' => array(
       'field_access' => 0,
@@ -334,17 +378,20 @@ function commerce_bundle_install() {
   commerce_product_ui_product_type_save($product_type, TRUE);
 
   $fields = commerce_bundle_installed_fields();
-  // Add all fields and their instances.
-  foreach ($fields as $field) {
+  // Add all fields.
+  foreach ($fields['field_config'] as $field) {
     // Look for existing field.
-    $field_config = field_info_field($field['field_config']['field_name']);
+    $field_config = field_info_field($field['field_name']);
     if (empty($field_config)) {
-      field_create_field($field['field_config']);
+      field_create_field($field);
     }
+  }
+  // Add all field instances.
+  foreach ($fields['field_instance'] as $field_instance) {
     // Look for existing instance.
-    $instance = field_info_instance($field['field_instance']['entity_type'], $field['field_config']['field_name'], $field['field_instance']['bundle']);
+    $instance = field_info_instance($field_instance['entity_type'], $field_instance['field_name'], $field_instance['bundle']);
     if (empty($instance)) {
-      field_create_instance($field['field_instance']);
+      field_create_instance($field_instance);
     }
   }
 }
