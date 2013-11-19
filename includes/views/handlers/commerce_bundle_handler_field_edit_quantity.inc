@@ -52,12 +52,10 @@ class commerce_bundle_handler_field_edit_quantity extends commerce_line_item_han
         // of the sum of the unit quantities for the product groups that make
         // up the bundle.
         $order_qty_sum = 0;
-        $order = commerce_order_load($data['order_id']);
+        $order = commerce_order_load($data['entity']->order_id);
         $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
         foreach ($order_wrapper->commerce_line_items as $line_item) {
-         // dpm($line_item->value(), '$line_item');
-         // dpm(isset($line_item->commerce_bundle_id), 'isset');
-          if (isset($line_item->commerce_bundle_id) && $line_item->commerce_bundle_id->nid->value() == $data['commerce_bundle_id']->nid) {
+          if (isset($line_item->commerce_bundle_id) && $line_item->commerce_bundle_id->nid->value() == $data['entity']->commerce_bundle_id->nid) {
             $order_qty_sum += $line_item->quantity->value();
           }
         }

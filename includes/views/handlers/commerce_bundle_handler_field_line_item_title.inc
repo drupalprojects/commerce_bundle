@@ -11,7 +11,7 @@ class commerce_bundle_handler_field_line_item_title extends commerce_line_item_h
     $data =& $values->_field_data[$alias];
     if ($data['entity_type'] == 'bundle_control') {
       // It's a control row. We return the node display title as the row title.
-      return $data['commerce_bundle_id']->title;
+      return $data['entity']->commerce_bundle_id->title;
     }
     elseif ($data['entity']->type == 'bundle_product') {
       // It's a bundle product line item. Return node display title + product

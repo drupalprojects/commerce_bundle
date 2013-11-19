@@ -32,21 +32,25 @@ function commerce_bundle_views_post_execute(&$view) {
       // Extract the entities for each result.
       foreach ($view->result as $row_index => $current_row) {
         $current_entity = $current_row->_field_data[$alias]['entity'];
-        if ($current_entity->type != 'bundle_product') {
-          // We don't care about anything but bundle line items.
+        $current_entity_wrapper = entity_metadata_wrapper('commerce_line_item', $current_entity);
+        $previous_row = isset($view->result[$row_index - 1]) ? $view->result[$row_index - 1] : NULL;
+        if ($current_entity->type != 'bundle_product' || (isset($previous_row) && $previous_row->_field_data[$alias]['entity_type'] == 'bundle_control')) {
+           // We don't care about anything but bundle line items where the
+          // previous row is not a control row.
           continue;
         }
-        $previous_entity = (isset($view->result[$row_index - 1])) ? $view->result[$row_index - 1]->_field_data[$alias]['entity'] : FALSE;
+        $previous_entity_wrapper = isset($previous_row) ? entity_metadata_wrapper('commerce_line_item', $previous_row->_field_data[$alias]['entity']) : NULL;
 
-        if (!$previous_entity || $previous_entity->type != 'bundle_product' || $previous_entity->commerce_bundle_id != $current_entity->commerce_bundle_id) {
-          // It's  a first bundle line item in the group. Add a control row above the current row.
-          $current_entity_wrapper = entity_metadata_wrapper('commerce_line_item', $current_entity);
+        if (!isset($previous_entity_wrapper) || $previous_row->_field_data[$alias]['entity']->type != 'bundle_product' || $previous_entity_wrapper->commerce_bundle_id->nid->value() != $current_entity_wrapper->commerce_bundle_id->nid->value()) {
+          // It's  a first bundle line item in the group. Add a control row
+          // above the current row.
           $new_row = new stdClass();
-          $data =& $new_row->_field_data[$alias];
-          $data['entity_type'] = 'bundle_control';
-          $data['commerce_bundle_id'] = $current_entity_wrapper->commerce_bundle_id->value();
-          $data['commerce_product'] = $current_entity_wrapper->commerce_product->value();
-          $data['order_id'] = $current_entity->order_id;
+          $new_row->_field_data[$alias]['entity_type'] = 'bundle_control';
+          $new_row->_field_data[$alias]['entity'] = new stdClass();
+          $data =& $new_row->_field_data[$alias]['entity'];
+          $data->commerce_bundle_id = $current_entity_wrapper->commerce_bundle_id->value();
+          $data->commerce_product = $current_entity_wrapper->commerce_product->value();
+          $data->order_id = $current_entity->order_id;
           array_splice($view->result, $row_index, 0, array($new_row));
         }
       }
