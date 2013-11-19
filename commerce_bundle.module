@@ -189,9 +189,16 @@ function commerce_bundle_product_line_item_populate($line_item, $bundler, $produ
     $line_item_wrapper->commerce_display_path = '';
   }
 
-  // Set the unit price on the line item object if the product has a value in
-  // its commerce_price field.
-  $line_item->commerce_unit_price = $product->commerce_price;
+  // Set the unit price on the line item.
+  if ($bundle_item_wrapper->commerce_bundle_price->value()) {
+    $line_item->commerce_unit_price = $bundle_item_wrapper->commerce_bundle_price->value();
+  }
+  elseif ($product_group_wrapper->commerce_price->value()) {
+    $line_item->commerce_unit_price = $product_group_wrapper->commerce_price->value();
+  }
+  else {
+    $line_item->commerce_unit_price = $product_wrapper->commerce_price->value();
+  }
 
   if (!is_null($line_item_wrapper->commerce_unit_price->value())) {
     // Add the base price to the components array.
