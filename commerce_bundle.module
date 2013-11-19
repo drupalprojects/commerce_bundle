@@ -68,6 +68,134 @@ function commerce_bundle_line_item_title($line_item) {
   dpm($line_item);
 }
 
+
+/**
+ * Creates a new bundle product line item populated with the proper product values.
+ *
+ * @param $bundle_item
+ *   The full loaded bundle item entity.
+ * @param $product_group
+ *   The fully loaded product group.
+ * @param $bundler
+ *   The fully loaded entity bundling all the product groups.
+ * @param $quantity
+ *   The quantity to set for the product.
+ * @param $order_id
+ *   The ID of the order the line item belongs to (if available).
+ * @param $data
+ *   A data array to set on the new line item. The following information in the
+ *   data array may be used on line item creation:
+ *   - $data['context']['display_path']: if present will be used to set the line
+ *     item's display_path field value.
+ * @param $type
+ *   The type of product line item to create. Must be a product line item as
+ *   defined in the line item type info array, and the line item type must
+ *   include the expected product related fields. Defaults to the base product
+ *   line item type defined by the Product Reference module.
+ *
+ * @return
+ *   The fully loaded line item populated with the product data as specified.
+ */
+function commerce_bundle_product_line_item_new($bundle_item, $product_group, $bundler, $quantity = 1, $order_id = 0, $data = array(), $type = 'product') {
+  // Ensure a default product line item type.
+  if (empty($type)) {
+    $type = 'bundle_product';
+  }
+
+  // Create the new line item.
+  $line_item = entity_create('commerce_line_item', array(
+    'type' => $type,
+    'order_id' => $order_id,
+    'quantity' => $quantity,
+    'data' => $data,
+  ));
+
+  // Populate it with the entity information.
+  commerce_bundle_product_line_item_populate($line_item, $bundler, $product_group, $bundle_item);
+
+  // Return the line item.
+  return $line_item;
+}
+
+/**
+ * Populates an existing bundle product line item with the product and quantity data.
+ *
+ * @param $line_item
+ *   The fully loaded line item object, populated by reference.
+ * @param $bundler
+ *   The fully loaded entity bundling all the product groups.
+ * @param $product_group
+ *   The fully loaded product group.
+ * @param $bundle_item
+ *   The fully loaded bundle item entity.
+ */
+function commerce_bundle_product_line_item_populate($line_item, $bundler, $product_group, $bundle_item) {
+  // Wrap the entities.
+  $line_item_wrapper = entity_metadata_wrapper('commerce_line_item', $line_item);
+  $product_group_wrapper = entity_metadata_wrapper('commerce_product', $product_group);
+  $bundle_item_wrapper = entity_metadata_wrapper('commerce_bundle_item', $bundle_item);
+
+  // Set the bundler reference - lazy set to allow any entity type.
+  if (isset($line_item_wrapper->commerce_bundle_id)) {
+    $line_item_wrapper->commerce_bundle_id = $bundler;
+  }
+
+  // Set the product group reference.
+  if (isset($line_item_wrapper->commerce_bundle_group_id)) {
+    $line_item_wrapper->commerce_bundle_group_id = $product_group->product_id;
+  }
+
+  // Set the bundle item reference.
+  if (isset($line_item_wrapper->commerce_bundle_item_id)) {
+    $line_item_wrapper->commerce_bundle_item_id = $bundle_item->item_id;
+  }
+
+  // Set the product reference.
+  $product_wrapper = $bundle_item_wrapper->commerce_bundle_product;
+  $product = $product_wrapper->value();
+  $line_item_wrapper->commerce_product = $product->product_id;
+
+  // Set the label to be the product SKU.
+/** @todo: should label be set to something indicating bundle? **/
+  $line_item->line_item_label = $product->sku;
+
+  // Set unit quantity and update line item quantity.
+  $unit_quantity = NULL;
+  if (isset($product_group_wrapper->commerce_bundle_unit_quantity) &&
+      isset($line_item_wrapper->commerce_bundle_unit_quantity)) {
+    // Set the unit quanity.
+    $unit_quantity = $product_group_wrapper->commerce_bundle_unit_quantity->value();
+    $line_item_wrapper->commerce_bundle_unit_quantity = $unit_quantity;
+
+    // Update line item quantity.
+    $line_item->quantity *= (int) $unit_quantity;
+  }
+
+  // Add the display URI if specified.
+  if (!empty($line_item->data['context']['display_path'])) {
+    $line_item_wrapper->commerce_display_path = $line_item->data['context']['display_path'];
+  }
+  else {
+    $line_item_wrapper->commerce_display_path = '';
+  }
+
+  // Set the unit price on the line item object if the product has a value in
+  // its commerce_price field.
+  $line_item->commerce_unit_price = $product->commerce_price;
+
+  if (!is_null($line_item_wrapper->commerce_unit_price->value())) {
+    // Add the base price to the components array.
+    if (!commerce_price_component_load($line_item_wrapper->commerce_unit_price->value(), 'base_price')) {
+      $line_item_wrapper->commerce_unit_price->data = commerce_price_component_add(
+        $line_item_wrapper->commerce_unit_price->value(),
+        'base_price',
+        $line_item_wrapper->commerce_unit_price->value(),
+        TRUE
+      );
+    }
+  }
+}
+
 /**
  * Implements hook_views_post_execute().
  */
