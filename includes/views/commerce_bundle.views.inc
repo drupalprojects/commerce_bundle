@@ -47,6 +47,8 @@ function commerce_bundle_views_post_execute(&$view) {
           $new_row = new stdClass();
           $new_row->_field_data[$alias]['entity_type'] = 'bundle_control';
           $new_row->_field_data[$alias]['entity'] = new stdClass();
+          // Set the display path to the current row's.
+          $new_row->field_commerce_display_path = $current_row->field_commerce_display_path;
           $data =& $new_row->_field_data[$alias]['entity'];
           $data->commerce_bundle_id = $current_entity_wrapper->commerce_bundle_id->value();
           $data->commerce_product = $current_entity_wrapper->commerce_product->value();

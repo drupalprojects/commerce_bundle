@@ -33,7 +33,23 @@ class commerce_bundle_handler_field_edit_quantity extends commerce_line_item_han
       // Extract field data containing entity information.
       $alias = $this->aliases['line_item_id'];
       $data =& $row->_field_data[$alias];
-      if ($data['entity_type'] != 'bundle_control') {
+      if ($data['entity_type'] == 'bundle_control') {
+        // It's a bundle control row. The bundle quantity will be a multiple
+        // of the sum of the unit quantities for the product groups that make
+        // up the bundle.
+        $unit_qtys = db_query("SELECT commerce_bundle_unit_quantity_value as unit_qty, commerce_bundle_group_id_target_id as group_id FROM {commerce_line_item} cli
+                                JOIN {field_data_commerce_bundle_id bid} ON cli.line_item_id = bid.entity_id
+                                JOIN {field_data_commerce_bundle_unit_quantity} uq ON cli.line_item_id = uq.entity_id
+                                JOIN {field_data_commerce_bundle_group_id} gid on cli.line_item_id = gid.entity_id
+                                WHERE order_id = :data_order_id AND commerce_bundle_id_target_id = :commerce_bundle_id
+                                GROUP BY  commerce_bundle_group_id_target_id", array(':data_order_id' => $data['entity']->order_id, ':commerce_bundle_id' => $data['entity']->commerce_bundle_id->nid))
+                                ->fetchAllAssoc('group_id', PDO::FETCH_ASSOC);
+        $unit_qty_sum = 0;
+        foreach($unit_qtys as $result) {
+          $unit_qty_sum += $result['unit_qty'];
+        }
+      }
+      else {
         // It's either a bundle product line item, or a regular line item.
         $line_item_id = $this->get_value($row, 'line_item_id');
         $quantity = $this->get_value($row, 'quantity');
@@ -45,19 +61,6 @@ class commerce_bundle_handler_field_edit_quantity extends commerce_line_item_han
         if($data['entity']->type == 'bundle_product') {
           // It's a bundle product line item. Disable it.
           $form_data['#disabled'] = TRUE;
-        }
-      }
-      else {
-        // It's a bundle control row. The bundle quantity will be a multiple
-        // of the sum of the unit quantities for the product groups that make
-        // up the bundle.
-        $order_qty_sum = 0;
-        $order = commerce_order_load($data['entity']->order_id);
-        $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
-        foreach ($order_wrapper->commerce_line_items as $line_item) {
-          if (isset($line_item->commerce_bundle_id) && $line_item->commerce_bundle_id->nid->value() == $data['entity']->commerce_bundle_id->nid) {
-            $order_qty_sum += $line_item->quantity->value();
-          }
         }
       }
     }
