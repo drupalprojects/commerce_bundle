@@ -5,6 +5,19 @@
  * Provides product bundles for Drupal Commerce
  */
 
+module_load_include('inc', 'commerce_bundle', 'includes/commerce_bundle.field');
+
+/**
+ * Implements hook_hook_info().
+ */
+function commerce_bundle_hook_info() {
+  return array(
+    'commerce_bundle_item_reference_default_delta_alter' => array(
+      'group' => 'commerce',
+    ),
+  );
+}
+
 /**
  * Implements hook_views_api().
  */
@@ -19,16 +32,25 @@ function commerce_bundle_views_api() {
  * Retuns an array of bundle line item types
  */
 function commerce_bundle_line_item_types() {
-/** @todo: return bundle line item types, @see commerce_product_line_item_types() ***/
-  return array();
+  $types = array();
+
+  foreach (commerce_line_item_types() as $type => $line_item_type) {
+    if (!empty($line_item_type['product']) && !empty($line_item_type['bundle'])) {
+      $types[] = $type;
+    }
+  }
+
+  return $types;
 }
 
 /**
  * Implements hook_commerce_bundle_item_can_delete().
  */
 function commerce_bundle_commerce_bundle_item_can_delete($entity) {
-/** @todo: build query per bundle item reference on new line item type ****/
-return TRUE;
+  $line_item_types = commerce_bundle_line_item_types();
+  if (empty($line_item_types)) {
+    return TRUE;
+  }
 
   // Use EntityFieldQuery to look for line items referencing this bundle item
   // and do not allow the delete to occur if one exists.
@@ -55,6 +77,7 @@ function commerce_bundle_commerce_line_item_type_info() {
     'name' => t('Bundle Product'),
     'description' => t('References a Bundle Product.'),
     'product' => TRUE,
+    'bundle' => TRUE,
     'add_form_submit_value' => t('Add bundle'),
     'base' => 'commerce_product_line_item',
     'callbacks' => array(
@@ -75,16 +98,21 @@ function commerce_bundle_commerce_line_item_type_info() {
  *  The appropriate title depending on if the line item is a control row or not.
  */
 function commerce_bundle_line_item_title($line_item) {
-  dpm($line_item);
-}
+  $line_item_wrapper = entity_metadata_wrapper('commerce_line_item', $line_item);
 
+  // Currently, just return the product's title.  However, in the future replace
+  // this with extra bundle info.
+  if ($product = $line_item_wrapper->commerce_product->value()) {
+    return check_plain($product->title);
+  }
+}
 
 /**
  * Creates a new bundle product line item populated with the proper product values.
  *
  * @param $bundle_item
  *   The full loaded bundle item entity.
- * @param $product_group
+ * @param $group
  *   The fully loaded product group.
  * @param $bundler
  *   The fully loaded entity bundling all the product groups.
@@ -106,7 +134,7 @@ function commerce_bundle_line_item_title($line_item) {
  * @return
  *   The fully loaded line item populated with the product data as specified.
  */
-function commerce_bundle_product_line_item_new($bundle_item, $product_group, $bundler, $quantity = 1, $order_id = 0, $data = array(), $type = 'product') {
+function commerce_bundle_product_line_item_new($bundle_item, $group, $bundler, $quantity = 1, $order_id = 0, $data = array(), $type = 'bundle_product') {
   // Ensure a default product line item type.
   if (empty($type)) {
     $type = 'bundle_product';
@@ -121,7 +149,7 @@ function commerce_bundle_product_line_item_new($bundle_item, $product_group, $bu
   ));
 
   // Populate it with the entity information.
-  commerce_bundle_product_line_item_populate($line_item, $bundler, $product_group, $bundle_item);
+  commerce_bundle_product_line_item_populate($line_item, $bundler, $group, $bundle_item);
 
   // Return the line item.
   return $line_item;
@@ -134,15 +162,15 @@ function commerce_bundle_product_line_item_new($bundle_item, $product_group, $bu
  *   The fully loaded line item object, populated by reference.
  * @param $bundler
  *   The fully loaded entity bundling all the product groups.
- * @param $product_group
+ * @param $group
  *   The fully loaded product group.
  * @param $bundle_item
  *   The fully loaded bundle item entity.
  */
-function commerce_bundle_product_line_item_populate($line_item, $bundler, $product_group, $bundle_item) {
+function commerce_bundle_product_line_item_populate($line_item, $bundler, $group, $bundle_item) {
   // Wrap the entities.
   $line_item_wrapper = entity_metadata_wrapper('commerce_line_item', $line_item);
-  $product_group_wrapper = entity_metadata_wrapper('commerce_product', $product_group);
+  $group_wrapper = entity_metadata_wrapper('commerce_product', $group);
   $bundle_item_wrapper = entity_metadata_wrapper('commerce_bundle_item', $bundle_item);
 
   // Set the bundler reference - lazy set to allow any entity type.
@@ -152,7 +180,7 @@ function commerce_bundle_product_line_item_populate($line_item, $bundler, $produ
 
   // Set the product group reference.
   if (isset($line_item_wrapper->commerce_bundle_group_id)) {
-    $line_item_wrapper->commerce_bundle_group_id = $product_group->product_id;
+    $line_item_wrapper->commerce_bundle_group_id = $group->product_id;
   }
 
   // Set the bundle item reference.
@@ -171,10 +199,10 @@ function commerce_bundle_product_line_item_populate($line_item, $bundler, $produ
 
   // Set unit quantity and update line item quantity.
   $unit_quantity = NULL;
-  if (isset($product_group_wrapper->commerce_bundle_unit_quantity) &&
+  if (isset($group_wrapper->commerce_bundle_unit_quantity) &&
       isset($line_item_wrapper->commerce_bundle_unit_quantity)) {
     // Set the unit quanity.
-    $unit_quantity = $product_group_wrapper->commerce_bundle_unit_quantity->value();
+    $unit_quantity = $group_wrapper->commerce_bundle_unit_quantity->value();
     $line_item_wrapper->commerce_bundle_unit_quantity = $unit_quantity;
 
     // Update line item quantity.
@@ -193,8 +221,8 @@ function commerce_bundle_product_line_item_populate($line_item, $bundler, $produ
   if ($bundle_item_wrapper->commerce_bundle_price->value()) {
     $line_item->commerce_unit_price = $bundle_item_wrapper->commerce_bundle_price->value();
   }
-  elseif ($product_group_wrapper->commerce_price->value()) {
-    $line_item->commerce_unit_price = $product_group_wrapper->commerce_price->value();
+  elseif ($group_wrapper->commerce_price->value()) {
+    $line_item->commerce_unit_price = $group_wrapper->commerce_price->value();
   }
   else {
     $line_item->commerce_unit_price = $product_wrapper->commerce_price->value();
@@ -211,4 +239,100 @@ function commerce_bundle_product_line_item_populate($line_item, $bundler, $produ
       );
     }
   }
+}
+
+/**
+ * Builds an appropriate cart form ID based on the product groupss on the form.
+ *
+ * @see commerce_bundle_forms().
+ */
+function commerce_bundle_add_to_cart_form_id($group_ids) {
+  // Make sure the length of the form id is limited.
+  $data = implode('_', $group_ids);
+
+  if (strlen($data) > 50) {
+    $data = drupal_hash_base64($data);
+  }
+
+  return 'commerce_bundle_add_to_cart_form_' . $data;
+}
+
+/**
+ * Implements hook_forms().
+ *
+ * To provide distinct form IDs for add to cart forms, the product IDs
+ * referenced by the form are appended to the base ID,
+ * commerce_cart_add_to_cart_form. When such a form is built or submitted, this
+ * function will return the proper callback function to use for the given form.
+ */
+function commerce_bundle_forms($form_id, $args) {
+  $forms = array();
+
+  // Construct a valid cart form ID from the arguments.
+  if (strpos($form_id, 'commerce_bundle_add_to_cart_form_') === 0) {
+    $forms[$form_id] = array(
+      'callback' => 'commerce_bundle_add_to_cart_form',
+    );
+  }
+
+  return $forms;
+}
+
+
+
+/**
+ * Builds an Add to Cart form for a set of products.
+ *
+ * @param $line_items
+ *   An array of fully formed bundle product line itema whose data will be
+ *   used in the following ways by the form:
+ *   - $line_item->data['context']['add_to_cart_combine']: a boolean indicating
+ *     whether or not to attempt to combine the product added to the cart with
+ *     existing line items of matching fields.
+ *   - $line_item->data['context']['show_single_product_attributes']: a boolean
+ *     indicating whether or not product attribute fields with single options
+ *     should be shown on the Add to Cart form.
+ *   - $line_item->quantity: the default value for the quantity widget if
+ *     included (determined by the $show_quantity parameter).
+ *   - $line_item->commerce_product: the value of this field will be used as the
+ *     default product ID when the form is built for multiple products.
+ *   The line item's data array will be used on submit to set the data array of
+ *   the product line item created by the form.
+ * @param $show_quantity
+ *   Boolean indicating whether or not to show the quantity widget; defaults to
+ *   FALSE resulting in a hidden field holding the quantity.
+ * @param $context
+ *   Information on the context of the form's placement, allowing it to update
+ *   product fields on the page based on the currently selected default product.
+ *   Should be an associative array containing the following keys:
+ *   - class_prefix: a prefix used to target HTML containers for replacement
+ *     with rendered fields as the default product is updated. For example,
+ *     nodes display product fields in their context wrapped in spans with the
+ *     class node-#-product-field_name.  The class_prefix for the add to cart
+ *     form displayed on a node would be node-# with this form's AJAX refresh
+ *     adding the suffix -product-field_name.
+ *   - view_mode: a product view mode that tells the AJAX refresh how to render
+ *     the replacement fields.
+ *   If no context is specified, AJAX replacement of rendered fields will not
+ *   happen. This parameter only affects forms containing multiple products.
+ *
+ * @return
+ *   The form array.
+ */
+function commerce_bundle_add_to_cart_form($form, &$form_state, $line_items, $show_quantity = FALSE, $context = array()) {
+  global $user;
+
+  // Store the context in the form state for use during AJAX refreshes.
+  $form_state['context'] = $context;
+
+  // Store the line item passed to the form builder for reference on submit.
+  $form_state['line_items'] = $line_items;
+
+dpm($form_state, '$form_state');
+/** @todo ****/
+  $form['TBD'] = array(
+    '#markup' => '<h2>' . t('TBD: Add to cart form goes here.'). '</h2>',
+  );
+
+  return $form;
 }

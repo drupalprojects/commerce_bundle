@@ -514,6 +514,60 @@ function commerce_bundle_item_status_options_list() {
 }
 
 
+/**
+ * Returns the default referenced bundle item from a product group.
+ *
+ * The basic behavior for determining a default bundle item from an array of
+ * referenced bundle items is to use the first referenced bundle item. This
+ * function also allows other modules to specify a different default bundle
+ * item through hook_commerce_bundle_item_reference_default_delta_alter().
+ *
+ * In the future, this function could pass the products referenced on the
+ * bundle items to commerce_product_reference_default_product() instead of
+ * defining it's own alter hook.
+ *
+ * @param $entity_type
+ *   The type of $entity; e.g., 'node' or 'user'.
+ * @param $entity
+ *   The entity containing the data to be displayed.
+ * @param $field_name
+ *   (Optional) The field to be displayed. Defaults to the first entityreference
+ *   field with a target type of commerce_bundle_item.
+ * @return
+ *   The default bundle item entity.
+ */
+function commerce_bundle_item_field_get_default_item($entity_type, $entity, $field_name = NULL) {
+  list($entity_id, $entity_vid, $entity_bundle) = entity_extract_ids($entity_type, $entity);
+  $entity_wrapper = entity_metadata_wrapper($entity_type, $entity);
+
+  if (empty($field_name)) {
+    $field_instances = field_info_instances($entity_type, $entity_bundle);
+    if (empty($field_instances)) {
+      return;
+    }
+    foreach ($field_instances as $field_name => $field_instance) {
+      $field_info = field_info_field($field_name);
+      if ($field_info && $field_info['type'] == 'entityreference' &&
+          $field_info['settings']['target_type'] == 'commerce_bundle_item') {
+        break;
+      }
+    }
+  }
+
+  if ($field_name && isset($entity_wrapper->{$field_name}) &&
+      ($bundle_items = $entity_wrapper->{$field_name}->value())) {
+    // Fetch the first delta value from the array.
+    reset($bundle_items);
+    $delta = key($bundle_items);
+
+    // Allow other modules to specify a different delta value if desired.
+    drupal_alter('commerce_bundle_item_reference_default_delta', $delta, $bundle_items);
+
+    return $bundle_items[$delta];
+  }
+}
+
+
 // -----------------------------------------------------------------------
 // Theme
 
