@@ -33,6 +33,7 @@ class commerce_bundle_handler_field_edit_quantity extends commerce_line_item_han
       // Extract field data containing entity information.
       $alias = $this->aliases['line_item_id'];
       $data =& $row->_field_data[$alias];
+      $form_data =& $form[$this->options['id']][$row_id];
       if ($data['entity_type'] == 'bundle_control') {
         // It's a bundle control row. The bundle quantity will be a multiple
         // of the sum of the unit quantities for the product groups that make
@@ -48,12 +49,19 @@ class commerce_bundle_handler_field_edit_quantity extends commerce_line_item_han
         foreach($unit_qtys as $result) {
           $unit_qty_sum += $result['unit_qty'];
         }
+
+        $order_qty_sum = db_query("SELECT SUM(quantity) FROM commerce_line_item cli
+                                    JOIN field_data_commerce_bundle_id bid ON cli.line_item_id = bid.entity_id
+                                    WHERE order_id = :data_order_id AND commerce_bundle_id_target_id = :commerce_bundle_id",
+                                    array(':data_order_id' => $data['entity']->order_id, ':commerce_bundle_id' => $data['entity']->commerce_bundle_id->nid))
+                                    ->fetchField();
+
+        $form_data['#default_value'] = round($order_qty_sum/$unit_qty_sum);
       }
       else {
         // It's either a bundle product line item, or a regular line item.
         $line_item_id = $this->get_value($row, 'line_item_id');
         $quantity = $this->get_value($row, 'quantity');
-        $form_data =& $form[$this->options['id']][$row_id];
         $form_data['#default_value'] = round($quantity);
         $form_data['#maxlength'] = max(4, strlen($quantity));
         $form_data['#line_item_id'] = $line_item_id;
