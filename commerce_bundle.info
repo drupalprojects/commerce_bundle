@@ -11,5 +11,6 @@ core = 7.x
 ; Views
 files[] = includes/views/handlers/commerce_bundle_handler_field_line_item_title.inc
 files[] = includes/views/handlers/commerce_bundle_handler_field_edit_quantity.inc
+files[] = includes/views/handlers/commerce_bundle_handler_field_edit_delete.inc
 
 
