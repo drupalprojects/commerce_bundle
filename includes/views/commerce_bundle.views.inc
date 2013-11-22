@@ -48,10 +48,16 @@ function commerce_bundle_views_post_execute(&$view) {
           $new_row->_field_data[$alias]['entity'] = new stdClass();
           // Set the display path to the current row's.
           $path = 'node/' . $current_entity_wrapper->commerce_bundle_id->nid->value();
+          // Set the display path for the control row.
           $new_row->field_commerce_display_path = $current_row->field_commerce_display_path;
           $new_row->field_commerce_display_path[0]['rendered']['#markup'] = $path;
           $new_row->field_commerce_display_path[0]['raw']['value'] = $path;
           $new_row->field_commerce_display_path[0]['raw']['safe_value'] = $path;
+          
+          // Add some dummy markup to remove Views render warnings.
+          $new_row->field_commerce_unit_price[0]['rendered']['#markup'] = '';
+          $new_row->field_commerce_total[0]['rendered']['#markup'] = '';
+
           $data =& $new_row->_field_data[$alias]['entity'];
           $data->commerce_bundle_id = $current_entity_wrapper->commerce_bundle_id->value();
           $data->commerce_product = $current_entity_wrapper->commerce_product->value();
