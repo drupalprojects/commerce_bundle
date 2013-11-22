@@ -21,9 +21,20 @@ class commerce_bundle_handler_field_edit_delete extends commerce_line_item_handl
     $form[$this->options['id']] = array(
       '#tree' => TRUE,
     );
+
     // At this point, the query has already been run, so we can access the results
     // in order to get the base key value (for example, nid for nodes).
     foreach ($this->view->result as $row_id => $row) {
+
+      // Extract field data containing entity information.
+      $alias = $this->aliases['line_item_id'];
+      $data =& $row->_field_data[$alias];
+      $form_data =& $form[$this->options['id']][$row_id];
+      if (isset($data['entity']->type) && $data['entity']->type == 'bundle_product') {
+        // Only the control row of a bundle gets a 'Remove' button.
+        continue;
+      }
+
       $line_item_id = $this->get_value($row);
 
       $form[$this->options['id']][$row_id] = array(
