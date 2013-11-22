@@ -35,17 +35,21 @@ class commerce_bundle_handler_field_edit_delete extends commerce_line_item_handl
         continue;
       }
 
-      $line_item_id = $this->get_value($row);
-
       $form[$this->options['id']][$row_id] = array(
         '#type' => 'submit',
-        '#value' => t('Delete'),
         '#name' => 'delete-line-item-' . $row_id,
         '#attributes' => array('class' => array('delete-line-item')),
-        '#line_item_id' => $line_item_id,
         '#submit' => array_merge($form['#submit'], array('commerce_line_item_line_item_views_delete_form_submit')),
       );
+
+      if ($data['entity_type'] == 'bundle_control') {
+        $form_data['#value'] = t('Remove Bundle');
+        continue;
+      }
+
+      $line_item_id = $this->get_value($row);
+      $form_data['#value'] = t('Delete');
+      $form_data['#line_item_id'] = $line_item_id;
     }
   }
-
 }
