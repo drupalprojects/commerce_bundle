@@ -5,7 +5,6 @@ dependencies[] = commerce
 dependencies[] = commerce_product
 dependencies[] = commerce_line_item
 dependencies[] = commerce_bundle_item
-dependencies[] = entityreference
 core = 7.x
 
 ; Views
