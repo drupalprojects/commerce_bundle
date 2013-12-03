@@ -29,6 +29,7 @@ function commerce_bundle_views_post_execute(&$view) {
     }
 
     if (is_array($view->result) && !empty($view->result)) {
+      $control_rows = array();
       // Extract the entities for each result.
       foreach ($view->result as $row_index => $current_row) {
         $current_entity = $current_row->_field_data[$alias]['entity'];
@@ -40,8 +41,8 @@ function commerce_bundle_views_post_execute(&$view) {
           continue;
         }
         $previous_entity_wrapper = isset($previous_row) ? entity_metadata_wrapper('commerce_line_item', $previous_row->_field_data[$alias]['entity']) : NULL;
-        if (!isset($previous_entity_wrapper) || $previous_row->_field_data[$alias]['entity']->type != 'bundle_product' || $previous_entity_wrapper->commerce_bundle_id->nid->value() != $current_entity_wrapper->commerce_bundle_id->nid->value()) {
-          // It's  a first bundle line item in the group. Add a control row
+        if (!isset($previous_entity_wrapper) || $previous_row->_field_data[$alias]['entity']->type != 'bundle_product' || $previous_entity_wrapper->commerce_bundle_config_id->value() != $current_entity_wrapper->commerce_bundle_config_id->value()) {
+          // It's a first bundle line item in the group. Add a control row
           // above the current row.
           $new_row = new stdClass();
           $new_row->_field_data[$alias]['entity_type'] = 'bundle_control';
@@ -53,7 +54,7 @@ function commerce_bundle_views_post_execute(&$view) {
           $new_row->field_commerce_display_path[0]['rendered']['#markup'] = $path;
           $new_row->field_commerce_display_path[0]['raw']['value'] = $path;
           $new_row->field_commerce_display_path[0]['raw']['safe_value'] = $path;
-          
+
           // Add some dummy markup to remove Views render warnings.
           $new_row->field_commerce_unit_price[0]['rendered']['#markup'] = '';
           $new_row->field_commerce_total[0]['rendered']['#markup'] = '';
@@ -62,8 +63,19 @@ function commerce_bundle_views_post_execute(&$view) {
           $data->commerce_bundle_id = $current_entity_wrapper->commerce_bundle_id->value();
           $data->commerce_product = $current_entity_wrapper->commerce_product->value();
           $data->order_id = $current_entity->order_id;
-          array_splice($view->result, $row_index, 0, array($new_row));
+
+          // We store the insertion point (ie row index) and the control row
+          // data to build the new view result after inspection.
+          $control_rows[] = array (
+            'row_index' => $row_index,
+            'row_data' => $new_row,
+          );
         }
+      }
+      // Insertion point for the view is going to equal the row index plus the
+      // number of control rows already inserted.
+      foreach ($control_rows as $row_count => $control_row) {
+        array_splice($view->result, $control_row['row_index'] + $row_count, 0, array($control_row['row_data']));
       }
     }
   }
