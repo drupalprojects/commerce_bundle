@@ -408,7 +408,7 @@ function commerce_bundle_installed_fields() {
     ),
     'entity_type' => 'commerce_line_item',
     'field_name' => 'commerce_bundle_config_id',
-    'label' => 'bundle permutation',
+    'label' => 'Bundle Configuration ID',
     'required' => 0,
     'settings' => array(
       'text_processing' => 0,
