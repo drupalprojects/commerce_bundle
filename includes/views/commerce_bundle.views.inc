@@ -63,6 +63,7 @@ function commerce_bundle_views_post_execute(&$view) {
           $data->commerce_bundle_id = $current_entity_wrapper->commerce_bundle_id->value();
           $data->commerce_product = $current_entity_wrapper->commerce_product->value();
           $data->order_id = $current_entity->order_id;
+          $data->commerce_bundle_config_id = $current_entity_wrapper->commerce_bundle_config_id->value();
 
           // We store the insertion point (ie row index) and the control row
           // data to build the new view result after inspection.

@@ -36,24 +36,19 @@ class commerce_bundle_handler_field_edit_quantity extends commerce_line_item_han
       $form_data =& $form[$this->options['id']][$row_id];
       if ($data['entity_type'] == 'bundle_control') {
         // It's a bundle control row. The bundle quantity will be a multiple
-        // of the sum of the unit quantities for the product groups that make
-        // up the bundle.
-        $unit_qtys = db_query("SELECT commerce_bundle_unit_quantity_value as unit_qty, commerce_bundle_group_id_target_id as group_id FROM {commerce_line_item} cli
-                                JOIN {field_data_commerce_bundle_id bid} ON cli.line_item_id = bid.entity_id
-                                JOIN {field_data_commerce_bundle_unit_quantity} uq ON cli.line_item_id = uq.entity_id
-                                JOIN {field_data_commerce_bundle_group_id} gid on cli.line_item_id = gid.entity_id
-                                WHERE order_id = :data_order_id AND commerce_bundle_id_target_id = :commerce_bundle_id
-                                GROUP BY  commerce_bundle_group_id_target_id", array(':data_order_id' => $data['entity']->order_id, ':commerce_bundle_id' => $data['entity']->commerce_bundle_id->nid))
-                                ->fetchAllAssoc('group_id', PDO::FETCH_ASSOC);
-        $unit_qty_sum = 0;
-        foreach($unit_qtys as $result) {
-          $unit_qty_sum += $result['unit_qty'];
-        }
+        // of the sum of the unit quantities for line items that have the same
+        // bundle_config_id as the control row.
+
+        $unit_qty_sum = db_query("SELECT SUM(commerce_bundle_unit_quantity_value) as unit_qty FROM {field_data_commerce_bundle_unit_quantity} uq
+                                JOIN {field_data_commerce_bundle_config_id cid} ON uq.entity_id = cid.entity_id
+                                WHERE commerce_bundle_config_id_value = :commerce_bundle_config_id",
+                                array(':commerce_bundle_config_id' => $data['entity']->commerce_bundle_config_id))
+                                ->fetchField();
 
         $order_qty_sum = db_query("SELECT SUM(quantity) FROM commerce_line_item cli
-                                    JOIN field_data_commerce_bundle_id bid ON cli.line_item_id = bid.entity_id
-                                    WHERE order_id = :data_order_id AND commerce_bundle_id_target_id = :commerce_bundle_id",
-                                    array(':data_order_id' => $data['entity']->order_id, ':commerce_bundle_id' => $data['entity']->commerce_bundle_id->nid))
+                                    JOIN {field_data_commerce_bundle_config_id cid} ON cli.line_item_id = cid.entity_id
+                                    WHERE order_id = :data_order_id AND commerce_bundle_config_id_value = :commerce_bundle_config_id",
+                                    array(':data_order_id' => $data['entity']->order_id, ':commerce_bundle_config_id' => $data['entity']->commerce_bundle_config_id))
                                     ->fetchField();
 
         $form_data['#default_value'] = round($order_qty_sum/$unit_qty_sum);
