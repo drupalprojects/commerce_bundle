@@ -70,7 +70,7 @@ class commerce_bundle_handler_field_edit_delete extends commerce_line_item_handl
           foreach ($this->view->result as $row_index => $data) {
             if ($data->_field_data[$alias]['entity_type'] != 'bundle_control') {
               $line_item_wrapper = entity_metadata_wrapper('commerce_line_item', $data->_field_data[$alias]['entity']);
-              if (isset($line_item_wrapper->commerce_bundle_id) && $row_data['entity']->commerce_bundle_id->nid == $line_item_wrapper->commerce_bundle_id->nid->value()) {
+              if (isset($line_item_wrapper->commerce_bundle_id) && $row_data['entity']->commerce_bundle_config_id == $line_item_wrapper->commerce_bundle_config_id->value()) {
                 $bundle_row_indices[] = $row_index;
               }
             }
