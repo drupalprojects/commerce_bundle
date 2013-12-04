@@ -73,29 +73,31 @@ class commerce_bundle_handler_field_edit_quantity extends commerce_line_item_han
     $field_name = $this->options['id'];
     $deleted_line_items = array();
     $updated_line_items = array();
-    $bundle_row_indices = array();
 
     $alias = $this->aliases['line_item_id'];
 
     foreach (element_children($form[$field_name]) as $row_id) {
       $row_data = $this->view->result[$row_id]->_field_data[$alias];
       if ($row_data['entity_type'] == 'bundle_control') {
+        $bundle_config_rows = array();
         // It's a bundle control row. Grab all the row indices that are part
         // of this bundle.
         foreach ($this->view->result as $row_index => $data) {
           if ($data->_field_data[$alias]['entity_type'] != 'bundle_control') {
             $line_item_wrapper = entity_metadata_wrapper('commerce_line_item', $data->_field_data[$alias]['entity']);
-            if (isset($line_item_wrapper->commerce_bundle_id) && $row_data['entity']->commerce_bundle_id->nid == $line_item_wrapper->commerce_bundle_id->nid->value()) {
-              $bundle_row_indices[] = $row_index;
+            if (isset($line_item_wrapper->commerce_bundle_id) && $row_data['entity']->commerce_bundle_config_id == $line_item_wrapper->commerce_bundle_config_id->value()) {
+              $bundle_config_rows[] = array(
+                'row_index' => $row_index,
+                'unit_qty' => $line_item_wrapper->commerce_bundle_unit_quantity->value(),
+              );
             }
           }
         }
         // Set the form_state quantity value for each bundle line item, then
         // let the default commerce code do it's work.
-        foreach ($bundle_row_indices as $index) {
-          $eff_unit_qty = $this->commerce_bundle_calculate_effective_unit_qty($this->view->result[$index], $alias);
-          // Bundle line item quantity is control row qty x effective unit qty.
-          $form_state['values'][$field_name][$index] = $form_state['values'][$field_name][$row_id]*$eff_unit_qty;
+        foreach ($bundle_config_rows as $row) {
+          // Bundle line item quantity is control row qty x unit qty.
+          $form_state['values'][$field_name][$row['row_index']] = $form_state['values'][$field_name][$row_id]*$row['unit_qty'];
         }
         continue;
       }
@@ -134,34 +136,5 @@ class commerce_bundle_handler_field_edit_quantity extends commerce_line_item_han
       commerce_line_item_save($line_item);
       entity_get_controller('commerce_line_item')->resetCache(array($line_item->line_item_id));
     }
-  }
-
-  /**
-   * Normalizes the unit quantity based on number of line items in cart.
-   *
-   * @param object $row
-   *  The views row for a bundle line item.
-   *
-   * @param string $alias
-   *   Alias for the line item id field.
-   *
-   * @return
-   *   The normalized unit quantity for a particular line item.
-   */
-  function commerce_bundle_calculate_effective_unit_qty($row, $alias) {
-
-    $entity_wrapper = entity_metadata_wrapper('commerce_line_item', $row->_field_data[$alias]['entity']);
-    $group_unit_qty = $entity_wrapper->commerce_bundle_group_id->commerce_bundle_unit_quantity->value();
-    // This is the number of line items in same order, bundle, and
-    // group, as the $row line item.
-    $bundle_group_sum = db_query("SELECT COUNT(line_item_id) FROM commerce_line_item cli
-                                  JOIN field_data_commerce_bundle_id bid ON cli.line_item_id = bid.entity_id
-                                  JOIN field_data_commerce_bundle_group_id gid ON cli.line_item_id = gid.entity_id
-                                  WHERE order_id = :order_id AND commerce_bundle_id_target_id = :commerce_bundle_id AND commerce_bundle_group_id_target_id = :commerce_bundle_group_id",
-                                  array(':order_id' => $entity_wrapper->order_id->value(), ':commerce_bundle_id' => $entity_wrapper->commerce_bundle_id->nid->value(),
-                                        ':commerce_bundle_group_id' => $entity_wrapper->commerce_bundle_group_id->product_id->value()))
-                                  ->fetchField();
-
-    return round($group_unit_qty/$bundle_group_sum);
   }
 }
