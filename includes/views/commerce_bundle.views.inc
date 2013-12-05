@@ -48,15 +48,15 @@ function commerce_bundle_views_post_execute(&$view) {
         // Store where the appropriate css classes need to go.
         if (isset($current_config_id)) {
           if ($current_config_id == $current_entity_wrapper->commerce_bundle_config_id->value()) {
-            // Sets the current row's row_classes.
-            $view->result[$row_index]->row_classes = array('bundle-item', 'bundle-config-'. $current_entity_wrapper->commerce_bundle_config_id->value());
+            // Sets the current row's bundle_row_classes.
+            $view->result[$row_index]->bundle_row_classes = array('bundle-item', 'bundle-config-'. $current_entity_wrapper->commerce_bundle_config_id->value());
             // The row gets a last class if either it's the last in the view
             // results array, or the next row doesn't have a config_id or
             // the next row has a config_id but it's different.
             $next_row = isset($view->result[$row_index + 1]) ? $view->result[$row_index + 1] : NULL;
             $next_entity_wrapper = isset($next_row) ? entity_metadata_wrapper('commerce_line_item', $next_row->_field_data[$alias]['entity']) : NULL;
             if (!isset($next_row) || $next_row->_field_data[$alias]['entity']->type != 'bundle_product' || $next_entity_wrapper->commerce_bundle_config_id->value() != $current_entity_wrapper->commerce_bundle_config_id->value()) {
-              $view->result[$row_index]->row_classes[] = 'bundle-last';
+              $view->result[$row_index]->bundle_row_classes[] = 'bundle-last';
             }
           }
         }
@@ -64,7 +64,7 @@ function commerce_bundle_views_post_execute(&$view) {
         if (!isset($previous_row) || $previous_row->_field_data[$alias]['entity']->type != 'bundle_product' || $previous_entity_wrapper->commerce_bundle_config_id->value() != $current_entity_wrapper->commerce_bundle_config_id->value()) {
           // It's a first bundle line item in the group.
           // We make sure to add css classes for the current row.
-          $view->result[$row_index]->row_classes = array('bundle-item', 'bundle-config-'. $current_entity_wrapper->commerce_bundle_config_id->value());
+          $view->result[$row_index]->bundle_row_classes = array('bundle-item', 'bundle-config-'. $current_entity_wrapper->commerce_bundle_config_id->value());
           // We create a control row and note the row index that it needs to be
           // spliced into.
           $new_row = new stdClass();
@@ -108,7 +108,7 @@ function commerce_bundle_views_post_execute(&$view) {
         $insertion_point = $control_row['row_index'] + $row_count;
         array_splice($view->result, $insertion_point, 0, array($control_row['row_data']));
         // We add css classes to the control row that are appropriate.
-        $view->result[$insertion_point]->row_classes = array('bundle-title', 'bundle-config-'. $control_row['row_data']->_field_data[$alias]['entity']->commerce_bundle_config_id);
+        $view->result[$insertion_point]->bundle_row_classes = array('bundle-title', 'bundle-config-'. $control_row['row_data']->_field_data[$alias]['entity']->commerce_bundle_config_id);
       }
     }
   }
@@ -124,7 +124,9 @@ function commerce_bundle_preprocess_views_view_table(&$vars) {
   if ($vars['view']->name != 'commerce_cart_form') {
     return;
   }
-
-  $vars['row_classes'][0][] ='test';
-
+  foreach ($vars['view']->result as $row_index => $row) {
+    if (isset($row->bundle_row_classes)) {
+      $vars['row_classes'][$row_index] = array_merge($vars['row_classes'][$row_index], $row->bundle_row_classes);
+    }
+  }
 }
