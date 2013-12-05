@@ -30,20 +30,43 @@ function commerce_bundle_views_post_execute(&$view) {
 
     if (is_array($view->result) && !empty($view->result)) {
       $control_rows = array();
-      // Extract the entities for each result.
+      $current_config_id = NULL;
+      // Inspect each row to determine where bundle control row headers need
+      // to be placed, and add bundle css classes.
       foreach ($view->result as $row_index => $current_row) {
         $current_entity = $current_row->_field_data[$alias]['entity'];
-        $current_entity_wrapper = entity_metadata_wrapper('commerce_line_item', $current_entity);
-        $previous_row = isset($view->result[$row_index - 1]) ? $view->result[$row_index - 1] : NULL;
-        if ($current_entity->type != 'bundle_product' || (isset($previous_row) && $previous_row->_field_data[$alias]['entity_type'] == 'bundle_control')) {
-           // We don't care about anything but bundle line items where the
-          // previous row is not a control row.
+        // We don't care about anything but bundle line items.
+        if ($current_entity->type != 'bundle_product') {
           continue;
         }
+        // Now we're dealing with a bundle line item.
+        $current_entity_wrapper = entity_metadata_wrapper('commerce_line_item', $current_entity);
+
+        $previous_row = isset($view->result[$row_index - 1]) ? $view->result[$row_index - 1] : NULL;
         $previous_entity_wrapper = isset($previous_row) ? entity_metadata_wrapper('commerce_line_item', $previous_row->_field_data[$alias]['entity']) : NULL;
-        if (!isset($previous_entity_wrapper) || $previous_row->_field_data[$alias]['entity']->type != 'bundle_product' || $previous_entity_wrapper->commerce_bundle_config_id->value() != $current_entity_wrapper->commerce_bundle_config_id->value()) {
-          // It's a first bundle line item in the group. Add a control row
-          // above the current row.
+
+        // Store where the appropriate css classes need to go.
+        if (isset($current_config_id)) {
+          if ($current_config_id == $current_entity_wrapper->commerce_bundle_config_id->value()) {
+            // Sets the current row's row_classes.
+            $view->result[$row_index]->row_classes = array('bundle-item', 'bundle-config-'. $current_entity_wrapper->commerce_bundle_config_id->value());
+            // The row gets a last class if either it's the last in the view
+            // results array, or the next row doesn't have a config_id or
+            // the next row has a config_id but it's different.
+            $next_row = isset($view->result[$row_index + 1]) ? $view->result[$row_index + 1] : NULL;
+            $next_entity_wrapper = isset($next_row) ? entity_metadata_wrapper('commerce_line_item', $next_row->_field_data[$alias]['entity']) : NULL;
+            if (!isset($next_row) || $next_row->_field_data[$alias]['entity']->type != 'bundle_product' || $next_entity_wrapper->commerce_bundle_config_id->value() != $current_entity_wrapper->commerce_bundle_config_id->value()) {
+              $view->result[$row_index]->row_classes[] = 'bundle-last';
+            }
+          }
+        }
+
+        if (!isset($previous_row) || $previous_row->_field_data[$alias]['entity']->type != 'bundle_product' || $previous_entity_wrapper->commerce_bundle_config_id->value() != $current_entity_wrapper->commerce_bundle_config_id->value()) {
+          // It's a first bundle line item in the group.
+          // We make sure to add css classes for the current row.
+          $view->result[$row_index]->row_classes = array('bundle-item', 'bundle-config-'. $current_entity_wrapper->commerce_bundle_config_id->value());
+          // We create a control row and note the row index that it needs to be
+          // spliced into.
           $new_row = new stdClass();
           $new_row->_field_data[$alias]['entity_type'] = 'bundle_control';
           $new_row->_field_data[$alias]['entity'] = new stdClass();
@@ -65,6 +88,10 @@ function commerce_bundle_views_post_execute(&$view) {
           $data->order_id = $current_entity->order_id;
           $data->commerce_bundle_config_id = $current_entity_wrapper->commerce_bundle_config_id->value();
 
+          // We set the latest config id so that we know which rows need bundle
+          // classes.
+          $current_config_id = $data->commerce_bundle_config_id;
+
           // We store the insertion point (ie row index) and the control row
           // data to build the new view result after inspection.
           $control_rows[] = array (
@@ -73,11 +100,31 @@ function commerce_bundle_views_post_execute(&$view) {
           );
         }
       }
-      // Insertion point for the view is going to equal the row index plus the
-      // number of control rows already inserted.
+
+      // Add the control rows after parsing all line items in the cart.
       foreach ($control_rows as $row_count => $control_row) {
-        array_splice($view->result, $control_row['row_index'] + $row_count, 0, array($control_row['row_data']));
+        // Insertion point for the view is going to equal the row index plus the
+        // number of control rows already inserted.
+        $insertion_point = $control_row['row_index'] + $row_count;
+        array_splice($view->result, $insertion_point, 0, array($control_row['row_data']));
+        // We add css classes to the control row that are appropriate.
+        $view->result[$insertion_point]->row_classes = array('bundle-title', 'bundle-config-'. $control_row['row_data']->_field_data[$alias]['entity']->commerce_bundle_config_id);
       }
     }
   }
+}
+
+/**
+ * Adds the classes to the rows that were tagged in hook_views_post_execute().
+ * @param array $vars
+ *   Raw data needed for processing a view.
+ */
+function commerce_bundle_preprocess_views_view_table(&$vars) {
+  // We only care about the Shopping cart form.
+  if ($vars['view']->name != 'commerce_cart_form') {
+    return;
+  }
+
+  $vars['row_classes'][0][] ='test';
+
 }
