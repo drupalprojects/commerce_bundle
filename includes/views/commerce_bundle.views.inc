@@ -129,4 +129,6 @@ function commerce_bundle_preprocess_views_view_table(&$vars) {
       $vars['row_classes'][$row_index] = array_merge($vars['row_classes'][$row_index], $row->bundle_row_classes);
     }
   }
+  $path = drupal_get_path('module', 'commerce_bundle');
+  drupal_add_css($path . '/theme/commerce_bundle.css');
 }
