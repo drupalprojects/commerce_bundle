@@ -136,7 +136,7 @@ function commerce_bundle_installed_fields() {
   );
 
   // Field commerce_bundle_item_id instance on Product Bundle Line Item.
-  $fields['field_instance']['commerce_bundle_item_id'] = array(
+  $fields['field_instance']['commerce_bundle_item_id_line_item'] = array(
     'bundle' => 'bundle_product',
     'commerce_cart_settings' => array(
       'field_access' => 0,
@@ -172,6 +172,61 @@ function commerce_bundle_installed_fields() {
       ),
       'type' => 'entityreference_autocomplete',
       'weight' => 4,
+    ),
+  );
+
+  // Field commerce_bundle_item_id instance on  Bundle Group product type.
+  $fields['field_instance']['commerce_bundle_item_id_group_product'] = array(
+    'bundle' => 'bundle_group',
+    'commerce_cart_settings' => array(
+      'attribute_field' => 0,
+      'attribute_widget' => 'select',
+    ),
+    'deleted' => 0,
+    'description' => '',
+    'display' => array(
+      'default' => array(
+        'label' => 'above',
+        'module' => 'entityreference',
+        'settings' => array(
+          'link' => FALSE,
+        ),
+        'type' => 'entityreference_label',
+        'weight' => 5,
+      ),
+      'line_item' => array(
+        'label' => 'above',
+        'settings' => array(),
+        'type' => 'hidden',
+        'weight' => 0,
+      ),
+      'node_teaser' => array(
+        'label' => 'above',
+        'settings' => array(),
+        'type' => 'hidden',
+        'weight' => 0,
+      ),
+    ),
+    'entity_type' => 'commerce_product',
+    'field_name' => 'commerce_bundle_item_id',
+    'label' => 'Bundle Item ID',
+    'required' => 1,
+    'settings' => array(
+      'user_register_form' => FALSE,
+    ),
+    'widget' => array(
+      'active' => 1,
+      'module' => 'inline_entity_form',
+      'settings' => array(
+        'fields' => array(),
+        'type_settings' => array(
+          'allow_existing' => FALSE,
+          'delete_references' => 0,
+          'match_operator' => 'CONTAINS',
+        ),
+      ),
+      'type' => 'inline_entity_form',
+      'weight' => 37,
     ),
   );
 
