@@ -226,7 +226,7 @@ function commerce_bundle_installed_fields() {
         ),
       ),
       'type' => 'inline_entity_form',
-      'weight' => 37,
+      'weight' => 102,
     ),
   );
 
@@ -285,7 +285,7 @@ function commerce_bundle_installed_fields() {
       'module' => 'number',
       'settings' => array(),
       'type' => 'number',
-      'weight' => 2,
+      'weight' => 101,
     ),
   );
 
@@ -542,7 +542,7 @@ function commerce_bundle_installed_fields() {
         'currency_code' => 'default',
       ),
       'type' => 'commerce_price_full',
-      'weight' => 38,
+      'weight' => 100,
     ),
   );
 
