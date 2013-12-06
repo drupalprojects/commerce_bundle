@@ -177,7 +177,7 @@ function commerce_bundle_installed_fields() {
 
   // Field commerce_bundle_item_id instance on  Bundle Group product type.
   $fields['field_instance']['commerce_bundle_item_id_group_product'] = array(
-    'bundle' => 'bundle_group',
+    'bundle' => 'commerce_bundle_group',
     'commerce_cart_settings' => array(
       'attribute_field' => 0,
       'attribute_widget' => 'select',
@@ -248,7 +248,7 @@ function commerce_bundle_installed_fields() {
 
   // Field commerce_bundle_unit_quantity instance on Bundle Group Product Type.
   $fields['field_instance']['commerce_bundle_unit_quantity_product_type'] = array(
-    'bundle' => 'bundle_group',
+    'bundle' => 'commerce_bundle_group',
     'commerce_cart_settings' => array(
       'field_access' => 0,
     ),
@@ -480,6 +480,72 @@ function commerce_bundle_installed_fields() {
     ),
   );
 
+  // Field 'commerce_bundle_group_price' configuration.
+  $fields['field_config']['commerce_bundle_group_price'] = array(
+    'active' => 1,
+    'cardinality' => 1,
+    'deleted' => 0,
+    'entity_types' => array(),
+    'field_name' => 'commerce_bundle_group_price',
+    'foreign keys' => array(),
+    'indexes' => array(
+      'currency_price' => array(
+        0 => 'amount',
+        1 => 'currency_code',
+      ),
+    ),
+    'locked' => 0,
+    'module' => 'commerce_price',
+    'settings' => array(),
+    'translatable' => 0,
+    'type' => 'commerce_price',
+  );
+
+  // Field 'commerce_bundle_group_price' instance on Bundle Group Product Type.
+  $fields['field_instance']['commerce_bundle_group_price'] = array(
+    'bundle' => 'commerce_bundle_group',
+    'default_value' => NULL,
+    'deleted' => 0,
+    'description' => '',
+    'display' => array(
+      'default' => array(
+        'label' => 'above',
+        'module' => NULL,
+        'settings' => array(),
+        'type' => 'commerce_price_default',
+        'weight' => 6,
+      ),
+      'line_item' => array(
+        'label' => 'above',
+        'settings' => array(),
+        'type' => 'hidden',
+        'weight' => 0,
+      ),
+      'node_teaser' => array(
+        'label' => 'above',
+        'settings' => array(),
+        'type' => 'hidden',
+        'weight' => 0,
+      ),
+    ),
+    'entity_type' => 'commerce_product',
+    'field_name' => 'commerce_bundle_group_price',
+    'label' => 'Group Price',
+    'required' => 0,
+    'settings' => array(
+      'user_register_form' => FALSE,
+    ),
+    'widget' => array(
+      'active' => 1,
+      'module' => 'commerce_price',
+      'settings' => array(
+        'currency_code' => 'default',
+      ),
+      'type' => 'commerce_price_full',
+      'weight' => 38,
+    ),
+  );
+
   return $fields;
 }
 
@@ -491,12 +557,12 @@ function commerce_bundle_install() {
   // Create the bundle group product type.
   $product_type = commerce_product_ui_product_type_new();
 
-  $product_type['type'] = 'bundle_group';
+  $product_type['type'] = 'commerce_bundle_group';
   $product_type['name'] = t('Bundle Group');
   $product_type['description'] = t('A group of related products e.g. t-shirt with attributes of color, and size.');
   $product_type['is_new'] = TRUE;
 
-  commerce_product_ui_product_type_save($product_type, TRUE);
+  commerce_product_ui_product_type_save($product_type, FALSE);
 
   $fields = commerce_bundle_installed_fields();
   // Add all fields.
@@ -525,5 +591,5 @@ function commerce_bundle_uninstall() {
   // creates.
   module_load_include('module', 'commerce');
   commerce_delete_instances('commerce_line_item', 'bundle_product');
-  commerce_delete_instances('commerce_product', 'bundle_group');
+  commerce_delete_instances('commerce_product', 'commerce_bundle_group');
 }
