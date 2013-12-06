@@ -56,7 +56,7 @@ function commerce_bundle_installed_fields() {
 
   // Field commerce_bundle_id instance on Product Bundle Line Item.
   $fields['field_instance']['commerce_bundle_id'] = array(
-    'bundle' => 'bundle_product',
+    'bundle' => 'commerce_bundle_line_item',
     'commerce_cart_settings' => array(
       'field_access' => 0,
     ),
@@ -137,7 +137,7 @@ function commerce_bundle_installed_fields() {
 
   // Field commerce_bundle_item_id instance on Product Bundle Line Item.
   $fields['field_instance']['commerce_bundle_item_id_line_item'] = array(
-    'bundle' => 'bundle_product',
+    'bundle' => 'commerce_bundle_line_item',
     'commerce_cart_settings' => array(
       'field_access' => 0,
     ),
@@ -292,7 +292,7 @@ function commerce_bundle_installed_fields() {
   // Field commerce_bundle_unit_quantity instance on Bundle Product Line Item
   // Type.
   $fields['field_instance']['commerce_bundle_unit_quantity_line_item'] = array(
-    'bundle' => 'bundle_product',
+    'bundle' => 'commerce_bundle_line_item',
     'commerce_cart_settings' => array(
       'field_access' => 0,
     ),
@@ -376,7 +376,7 @@ function commerce_bundle_installed_fields() {
 
   // Field commerce_bundle_group_id instance on Product Bundle Line Item.
   $fields['field_instance']['commerce_bundle_group_id'] = array(
-    'bundle' => 'bundle_product',
+    'bundle' => 'commerce_bundle_line_item',
     'commerce_cart_settings' => array(
       'field_access' => 0,
     ),
@@ -445,7 +445,7 @@ function commerce_bundle_installed_fields() {
 
   // Field 'commerce_bundle_config_id' instance on Bundle Product LI type.
   $fields['field_instance']['commerce_bundle_config_id'] = array(
-    'bundle' => 'bundle_product',
+    'bundle' => 'commerce_bundle_line_item',
     'commerce_cart_settings' => array(
       'field_access' => 0,
     ),
@@ -590,6 +590,6 @@ function commerce_bundle_uninstall() {
   // Delete field instances attached to commerce entity types this module
   // creates.
   module_load_include('module', 'commerce');
-  commerce_delete_instances('commerce_line_item', 'bundle_product');
+  commerce_delete_instances('commerce_line_item', 'commerce_bundle_line_item');
   commerce_delete_instances('commerce_product', 'commerce_bundle_group');
 }

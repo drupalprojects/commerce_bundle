@@ -36,7 +36,7 @@ function commerce_bundle_views_post_execute(&$view) {
       foreach ($view->result as $row_index => $current_row) {
         $current_entity = $current_row->_field_data[$alias]['entity'];
         // We don't care about anything but bundle line items.
-        if ($current_entity->type != 'bundle_product') {
+        if ($current_entity->type != 'commerce_bundle_line_item') {
           continue;
         }
         // Now we're dealing with a bundle line item.
@@ -55,13 +55,13 @@ function commerce_bundle_views_post_execute(&$view) {
             // the next row has a config_id but it's different.
             $next_row = isset($view->result[$row_index + 1]) ? $view->result[$row_index + 1] : NULL;
             $next_entity_wrapper = isset($next_row) ? entity_metadata_wrapper('commerce_line_item', $next_row->_field_data[$alias]['entity']) : NULL;
-            if (!isset($next_row) || $next_row->_field_data[$alias]['entity']->type != 'bundle_product' || $next_entity_wrapper->commerce_bundle_config_id->value() != $current_entity_wrapper->commerce_bundle_config_id->value()) {
+            if (!isset($next_row) || $next_row->_field_data[$alias]['entity']->type != 'commerce_bundle_line_item' || $next_entity_wrapper->commerce_bundle_config_id->value() != $current_entity_wrapper->commerce_bundle_config_id->value()) {
               $view->result[$row_index]->bundle_row_classes[] = 'bundle-last';
             }
           }
         }
 
-        if (!isset($previous_row) || $previous_row->_field_data[$alias]['entity']->type != 'bundle_product' || $previous_entity_wrapper->commerce_bundle_config_id->value() != $current_entity_wrapper->commerce_bundle_config_id->value()) {
+        if (!isset($previous_row) || $previous_row->_field_data[$alias]['entity']->type != 'commerce_bundle_line_item' || $previous_entity_wrapper->commerce_bundle_config_id->value() != $current_entity_wrapper->commerce_bundle_config_id->value()) {
           // It's a first bundle line item in the group.
           // We make sure to add css classes for the current row.
           $view->result[$row_index]->bundle_row_classes = array('bundle-item', 'bundle-config-'. $current_entity_wrapper->commerce_bundle_config_id->value());

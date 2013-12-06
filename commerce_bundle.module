@@ -72,10 +72,10 @@ function commerce_bundle_commerce_bundle_item_can_delete($entity) {
 function commerce_bundle_commerce_line_item_type_info() {
   $line_item_types = array();
 
-  $line_item_types['bundle_product'] = array(
-    'type' => 'bundle_product',
-    'name' => t('Bundle Product'),
-    'description' => t('References a Bundle Product.'),
+  $line_item_types['commerce_bundle_line_item'] = array(
+    'type' => 'commerce_bundle_line_item',
+    'name' => t('Bundle Line Item'),
+    'description' => t('References Bundle Groups, Bundle Items, and Bundle Products.'),
     'product' => TRUE,
     'bundle' => TRUE,
     'add_form_submit_value' => t('Add bundle'),
@@ -134,10 +134,10 @@ function commerce_bundle_line_item_title($line_item) {
  * @return
  *   The fully loaded line item populated with the product data as specified.
  */
-function commerce_bundle_product_line_item_new($bundle_item, $group, $bundler, $quantity = 1, $order_id = 0, $data = array(), $type = 'bundle_product') {
+function commerce_bundle_product_line_item_new($bundle_item, $group, $bundler, $quantity = 1, $order_id = 0, $data = array(), $type = 'commerce_bundle_line_item') {
   // Ensure a default product line item type.
   if (empty($type)) {
-    $type = 'bundle_product';
+    $type = 'commerce_bundle_line_item';
   }
 
   // Create the new line item.

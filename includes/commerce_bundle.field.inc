@@ -145,7 +145,7 @@ function commerce_bundle_field_formatter_view($entity_type, $entity, $field, $in
 
     // Check to ensure products are referenced, before returning results.
     if (!empty($groups)) {
-      $type = !empty($settings['line_item_type']) ? $settings['line_item_type'] : 'bundle_product';
+      $type = !empty($settings['line_item_type']) ? $settings['line_item_type'] : 'commerce_bundle_line_item';
       $bundle_item_field_name = 'commerce_bundle_item_id';
 
       // Create a line item per group.
