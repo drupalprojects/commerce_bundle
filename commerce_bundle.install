@@ -97,7 +97,7 @@ function commerce_bundle_installed_fields() {
   // Field commerce_bundle_item_id configuration.
   $fields['field_config']['commerce_bundle_item_id'] = array(
     'active' => 1,
-    'cardinality' => 1,
+    'cardinality' => -1,
     'deleted' => 0,
     'entity_types' => array(),
     'field_name' => 'commerce_bundle_item_id',

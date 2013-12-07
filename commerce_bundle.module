@@ -242,7 +242,7 @@ function commerce_bundle_product_line_item_populate($line_item, $bundler, $group
 }
 
 /**
- * Builds an appropriate cart form ID based on the product groupss on the form.
+ * Builds an appropriate cart form ID based on the product groups on the form.
  *
  * @see commerce_bundle_forms().
  */
