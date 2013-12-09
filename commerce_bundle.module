@@ -561,7 +561,8 @@ function commerce_bundle_add_to_cart_form_submit($form, &$form_state) {
   }
 
   $add_to_cart_deltas = array();
-  foreach ($form_state['line_items'] as $state_line_item_delta => $state_line_item) {
+  $bundle_quantity = isset($form_state['values']['quantity']) ? $form_state['values']['quantity'] : 1;
+  foreach ($form_state['line_items'] as $state_line_item_delta => &$state_line_item) {
     // If the line item passed to the function is new...
     if (empty($state_line_item->line_item_id)) {
       $state_line_item_wrapper = entity_metadata_wrapper('commerce_line_item', $state_line_item);
@@ -580,7 +581,7 @@ function commerce_bundle_add_to_cart_form_submit($form, &$form_state) {
 
       $product_id = $group_form_state_values['product_id'];
       $product = commerce_product_load($product_id);
-      $quantity = $form_state['values']['quantity'];
+
 
       $bundler_wrapper = $state_line_item_wrapper->commerce_bundle_id;
       $group_wrapper = $state_line_item_wrapper->commerce_bundle_group_id;
@@ -591,7 +592,7 @@ function commerce_bundle_add_to_cart_form_submit($form, &$form_state) {
         $bundle_item_wrapper->value(),
         $group_wrapper->value(),
         $bundler_wrapper->value(),
-        $quantity,
+        $bundle_quantity,
         0,
         $state_line_item->data,
         $state_line_item->type
@@ -643,6 +644,7 @@ function commerce_bundle_add_to_cart_form_submit($form, &$form_state) {
       }
     }
   }
+  unset($state_line_item);
 
   // Set bundle configuration.
   $line_item_configs_updated = array();
