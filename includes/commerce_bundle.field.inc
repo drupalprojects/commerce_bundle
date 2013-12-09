@@ -20,7 +20,7 @@ function commerce_bundle_field_formatter_info() {
         'default_quantity' => 1,
         'combine' => TRUE,
         'show_single_product_attributes' => FALSE,
-        'line_item_type' => 'product',
+        'line_item_type' => 'commerce_bundle_line_item',
       ),
     ),
   );
