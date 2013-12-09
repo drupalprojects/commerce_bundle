@@ -180,7 +180,7 @@ function commerce_bundle_product_line_item_populate($line_item, $bundler, $group
 
   // Set the product group reference.
   if (isset($line_item_wrapper->commerce_bundle_group_id)) {
-    $line_item_wrapper->commerce_bundle_group_id = $group->product_id;
+    $line_item_wrapper->commerce_bundle_group_id = $group;
   }
 
   // Set the bundle item reference.
@@ -278,8 +278,6 @@ function commerce_bundle_forms($form_id, $args) {
   return $forms;
 }
 
-
-
 /**
  * Builds an Add to Cart form for a set of products.
  *
@@ -333,6 +331,7 @@ dpm($form_state, '$form_state');
   $form['TBD'] = array(
     '#markup' => '<h2>' . t('TBD: Add to cart form goes here.'). '</h2>',
   );
+
 
   return $form;
 }

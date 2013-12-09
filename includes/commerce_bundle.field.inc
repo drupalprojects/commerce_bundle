@@ -146,18 +146,24 @@ function commerce_bundle_field_formatter_view($entity_type, $entity, $field, $in
     // Check to ensure products are referenced, before returning results.
     if (!empty($groups)) {
       $type = !empty($settings['line_item_type']) ? $settings['line_item_type'] : 'commerce_bundle_line_item';
-      $bundle_item_field_name = 'commerce_bundle_item_id';
+      $bundle_item_field_name = 'commerce_bundle_items';
 
       // Create a line item per group.
       $line_items = array();
       foreach ($groups as $group_id => $group) {
-        if ($bundle_item = commerce_bundle_item_field_get_default_item('commerce_product', $group, $bundle_item_field_name)) {
+        $group_wrapper = entity_metadata_wrapper('commerce_product', $group);
+        if (!isset($group_wrapper->{$bundle_item_field_name})) {
+          continue;
+        }
+
+        $bundle_items = $group_wrapper->{$bundle_item_field_name}->value();
+        if ($bundle_item = commerce_bundle_item_default_item($bundle_items)) {
           $line_item = commerce_bundle_product_line_item_new($bundle_item, $group, $entity, $settings['default_quantity'], 0, array(), $type);
 
-          // @todo: do we still need to add bundle_item ids if group is
-          // referenced on the line item.
-          // $line_item->data['context']['product_ids'] = array_keys($products);
+          // Set product ids to an empty array. Product ids are populated
+          $line_item->data['context']['product_ids'] = array();
 
+          // Set add to cart form settings.
           $line_item->data['context']['add_to_cart_combine'] = !empty($settings['combine']);
           $line_item->data['context']['show_single_product_attributes'] = !empty($settings['show_single_product_attributes']);
 
@@ -235,10 +241,6 @@ function commerce_bundle_field_attach_view_alter(&$output, $context) {
             'entity_id' => $entity_id,
             'product_reference_field_name' => $field_name,
           );
-
-          // Always point to the entity data since line item already has a
-          // product group reference and bundle item reference.
-          $line_item->data['context']['product_ids'] = 'entity';
         }
         unset($line_item);
 
