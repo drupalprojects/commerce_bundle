@@ -283,49 +283,16 @@ function commerce_bundle_product_line_item_populate($line_item, $bundler, $group
 
   // TODO: add an alter hook for bundle price ?
 
-  // Set the unit price on the line item object if the product has a value in
-  // its commerce_price field.
-  $line_item->commerce_unit_price = $product->commerce_price;
+  // Set the unit price as the resolved bundle price.
+  $line_item_wrapper->commerce_unit_price = $bundle_unit_price;
 
-  if (!is_null($line_item_wrapper->commerce_unit_price->value())) {
-    // Add the base price to the components array.
-    if (!commerce_price_component_load($line_item_wrapper->commerce_unit_price->value(), 'base_price')) {
-      $line_item_wrapper->commerce_unit_price->data = commerce_price_component_add(
-        $line_item_wrapper->commerce_unit_price->value(),
-        'base_price',
-        $line_item_wrapper->commerce_unit_price->value(),
-        TRUE
-      );
-    }
-  }
-
-
-  // Set bundle unit price as a discount.
-  if (isset($bundle_unit_price['amount'])) {
+  if (!is_null($bundle_unit_price)) {
     $unit_price = commerce_price_wrapper_value($line_item_wrapper, 'commerce_unit_price', TRUE);
 
-    // Calculate the updated amount and create a price array representing the
-    // difference between it and the current amount.
-    $current_amount = $unit_price['amount'];
-
-    // Calculate the updated amount and create a price array representing the
-    // difference between it and the current amount.
-    $current_amount = $unit_price['amount'];
-    $updated_amount = $bundle_unit_price['amount'];
-
-    $difference = array(
-      'amount' => $bundle_unit_price['amount'] - $current_amount,
-      'currency_code' => $unit_price['currency_code'],
-      'data' => array(),
-    );
-
-    // Set the amount of the unit price and add the difference as a component.
-    $line_item_wrapper->commerce_unit_price->amount = $updated_amount;
-
     $line_item_wrapper->commerce_unit_price->data = commerce_price_component_add(
-      $line_item_wrapper->commerce_unit_price->value(),
-      'discount',
-      $difference,
+      $bundle_unit_price,
+      'base_price',
+      $bundle_unit_price,
       TRUE
     );
   }
