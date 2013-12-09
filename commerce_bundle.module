@@ -8,17 +8,6 @@
 module_load_include('inc', 'commerce_bundle', 'includes/commerce_bundle.field');
 
 /**
- * Implements hook_hook_info().
- */
-function commerce_bundle_hook_info() {
-  return array(
-    'commerce_bundle_item_reference_default_delta_alter' => array(
-      'group' => 'commerce',
-    ),
-  );
-}
-
-/**
  * Implements hook_views_api().
  */
 function commerce_bundle_views_api() {
@@ -105,6 +94,69 @@ function commerce_bundle_line_item_title($line_item) {
   if ($product = $line_item_wrapper->commerce_product->value()) {
     return check_plain($product->title);
   }
+}
+
+/**
+ * Generates unique config ids used to group similar line items.
+ *
+ * @param $line_items
+ *   An array of line item objects.
+ *
+ * @return
+ *   An array keyed by bundle configuration IDs with values of keys from the
+ *   given line items array.
+ */
+function commerce_bundle_line_item_get_bundle_configs($line_items) {
+  $config_field_names = array(
+    'commerce_bundle_id',
+    'commerce_bundle_group_id',
+    'commerce_bundle_item_id',
+    'commerce_product',
+  );
+
+  $bundles = array();
+  foreach ($line_items as $delta => $line_item) {
+    $line_item_wrapper = entity_metadata_wrapper('commerce_line_item', $line_item);
+    foreach ($config_field_names as $config_field_name) {
+      if (!isset($line_item_wrapper->{$config_field_name})) {
+        continue 2;
+      }
+    }
+
+    $bundle_id = NULL;
+    $config_ids = array();
+    foreach ($config_field_names as $config_field_name) {
+      $entity_id = $line_item_wrapper->{$config_field_name}->raw();
+      if (empty($entity_id)) {
+        continue 2;
+      }
+      if ($config_field_name == 'commerce_bundle_id') {
+        $bundle_id = $entity_id;
+      }
+
+      $config_ids[$config_field_name] = $entity_id;
+    }
+
+    if ($bundle_id) {
+      $bundles[$bundle_id][$delta] = implode('_', $config_ids);
+    }
+  }
+
+  $return = array();
+  if (!empty($bundles)) {
+    foreach ($bundles as $bundle_id => $configs) {
+      // Hash entity ids representing the config.
+      $hash = drupal_hash_base64(implode('_', array_values($configs)));
+
+      // Store line item ids;
+      $return[$hash] = array();
+      foreach ($configs as $delta => $combined_config_ids) {
+        $return[$hash][$delta] = $line_items[$delta];
+      }
+    }
+  }
+
+  return $return;
 }
 
 /**
@@ -218,14 +270,14 @@ function commerce_bundle_product_line_item_populate($line_item, $bundler, $group
   }
 
   // Set the unit price on the line item.
-  if ($bundle_item_wrapper->commerce_bundle_price->value()) {
-    $line_item->commerce_unit_price = $bundle_item_wrapper->commerce_bundle_price->value();
+  if (!empty($bundle_item->commerce_bundle_price)) {
+    $line_item->commerce_unit_price = $bundle_item->commerce_bundle_price;
   }
-  elseif ($group_wrapper->commerce_price->value()) {
-    $line_item->commerce_unit_price = $group_wrapper->commerce_price->value();
+  elseif (!empty($group->commerce_price)) {
+    $line_item->commerce_unit_price = $group->commerce_price;
   }
   else {
-    $line_item->commerce_unit_price = $product_wrapper->commerce_price->value();
+    $line_item->commerce_unit_price = $product->commerce_price;
   }
 
   if (!is_null($line_item_wrapper->commerce_unit_price->value())) {
@@ -317,21 +369,330 @@ function commerce_bundle_forms($form_id, $args) {
  * @return
  *   The form array.
  */
-function commerce_bundle_add_to_cart_form($form, &$form_state, $line_items, $show_quantity = FALSE, $context = array()) {
+function commerce_bundle_add_to_cart_form($form, &$form_state, $line_items, $show_quantity = FALSE, $default_quantity = 1, $context = array()) {
   global $user;
 
   // Store the context in the form state for use during AJAX refreshes.
   $form_state['context'] = $context;
 
   // Store the line item passed to the form builder for reference on submit.
-  $form_state['line_items'] = $line_items;
+  $form_state['line_items'] = &$line_items;
 
-dpm($form_state, '$form_state');
-/** @todo ****/
-  $form['TBD'] = array(
-    '#markup' => '<h2>' . t('TBD: Add to cart form goes here.'). '</h2>',
+  // Add a generic class ID.
+  $form['#attributes']['class'][] = drupal_html_class('commerce-bundle-add-to-cart');
+  $form['#attributes']['class'][] = drupal_html_class('commerce-add-to-cart');
+
+  // Store the customer uid in the form so other modules can override with a
+  // selection widget if necessary.
+  $form['uid'] = array(
+    '#type' => 'value',
+    '#value' => $user->uid,
   );
 
+  // Add container for all product groups.
+  $form['product_groups'] = array(
+    '#type' => 'container',
+  );
+  $groups_container = &$form['product_groups'];
 
+  // Process bundle configurations.
+  $bundle_configs = commerce_bundle_line_item_get_bundle_configs($line_items);
+  foreach ($bundle_configs as $bundle_config_id => $bundle_config_line_items) {
+    foreach ($bundle_config_line_items as $line_item) {
+      $line_item_wrapper = entity_metadata_wrapper('commerce_line_item', $line_item);
+      if (isset($line_item_wrapper->commerce_bundle_config_id)) {
+        $line_item_wrapper->commerce_bundle_config_id = $bundle_config_id;
+      }
+    }
+  }
+
+  // Build attribute forms per product group.
+  $group_ids = array();
+  foreach ($line_items as $line_item) {
+    $line_item_wrapper = entity_metadata_wrapper('commerce_line_item', $line_item);
+    if (!isset($line_item_wrapper->commerce_bundle_group_id)) {
+      continue;
+    }
+
+    $group_id = $line_item_wrapper->commerce_bundle_group_id->raw();
+    $group_ids[] = $line_item_wrapper->commerce_bundle_group_id->raw();
+
+    $groups_container['product_group_' . $group_id] = array(
+      '#type' => 'container',
+      '#tree' => TRUE,
+    );
+    $group_form = &$groups_container['product_group_' . $group_id];
+    $group_form = commerce_bundle_line_item_attribute_form($line_item, $group_form, $form_state);
+  }
+  unset($group_form);
+
+  // Store the form ID as a class of the form to avoid the incrementing form ID
+  // from causing the AJAX refresh not to work.
+  $form['#attributes']['class'][] = drupal_html_class(commerce_bundle_add_to_cart_form_id($group_ids));
+
+  // Render the quantity field as either a textfield if shown or a hidden
+  // field if not.
+  if ($show_quantity) {
+    $form['quantity'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Quantity'),
+      '#default_value' => $default_quantity,
+      '#datatype' => 'integer',
+      '#size' => 5,
+      '#weight' => 45,
+    );
+  }
+  else {
+    $form['quantity'] = array(
+      '#type' => 'hidden',
+      '#value' => $default_quantity,
+      '#datatype' => 'integer',
+      '#weight' => 45,
+    );
+  }
+
+
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Add to cart'),
+    '#weight' => 50,
+  );
+
+  // Add the handlers manually since we're using hook_forms() to associate this
+  // form with form IDs based on the $product_ids.
+  $form['#validate'][] = 'commerce_bundle_add_to_cart_form_validate';
+  $form['#submit'][] = 'commerce_bundle_add_to_cart_form_submit';
+
+  return $form;
+}
+
+/**
+ * Form validate handler: validate the bundle and quantity to add to the cart.
+ */
+function commerce_bundle_add_to_cart_form_validate($form, &$form_state) {
+  // Check to ensure the quantity is valid.
+  if (!is_numeric($form_state['values']['quantity']) || $form_state['values']['quantity'] <= 0) {
+    form_set_error('quantity', t('You must specify a valid quantity to add to the cart.'));
+  }
+
+  // If the custom data type attribute of the quantity element is integer,
+  // ensure we only accept whole number values.
+  if ($form['quantity']['#datatype'] == 'integer' &&
+    (int) $form_state['values']['quantity'] != $form_state['values']['quantity']) {
+    form_set_error('quantity', t('You must specify a whole number for the quantity.'));
+  }
+
+  // Validate any line item fields that may have been included on the form.
+  if (!empty($form_state['line_items'])) {
+    foreach ($form_state['line_items'] as $line_item) {
+      $line_item_wrapper = entity_metadata_wrapper('commerce_line_item', $line_item);
+      if (!isset($line_item_wrapper->commerce_bundle_group_id)) {
+        continue;
+      }
+/** @todo: throw an error if we dont have a group? **/
+      $group_id = $line_item_wrapper->commerce_bundle_group_id->raw();
+      if (empty($form['product_groups']['product_group_' . $group_id]) ||
+          empty($form_state['values']['product_group_' . $group_id])) {
+        continue;
+      }
+
+      $group_form = $form['product_groups']['product_group_' . $group_id];
+      $group_form_state_values = &$form_state['values']['product_group_' . $group_id];
+
+      // If the attributes matching product selector was used, set the value of the
+      // product_id field to match; this will be fixed on rebuild when the actual
+      // default product will be selected based on the product selector value.
+      if (!empty($group_form_state_values['attributes']['product_select'])) {
+        form_set_value($group_form['product_id'], $group_form_state_values['attributes']['product_select'], $form_state);
+      }
+
+/** @todo: pass in nest form state? or does this figure it out ***/
+      if (!empty($group_form['line_item_fields'])) {
+        field_attach_form_validate('commerce_line_item', $line_item, $group_form['line_item_fields'], $form_state);
+      }
+    }
+  }
+}
+
+/**
+ * Form submit handler: add the selected bundle to the cart.
+ */
+function commerce_bundle_add_to_cart_form_submit($form, &$form_state) {
+  if (empty($form_state['line_items'])) {
+    return;
+  }
+
+  $add_to_cart_deltas = array();
+  foreach ($form_state['line_items'] as $state_line_item_delta => $state_line_item) {
+    // If the line item passed to the function is new...
+    if (empty($state_line_item->line_item_id)) {
+      $state_line_item_wrapper = entity_metadata_wrapper('commerce_line_item', $state_line_item);
+      if (!isset($state_line_item_wrapper->commerce_bundle_id) ||
+          !isset($state_line_item_wrapper->commerce_bundle_group_id) ||
+          !isset($state_line_item_wrapper->commerce_bundle_item_id)) {
+        continue;
+      }
+
+      $group_id = $state_line_item_wrapper->commerce_bundle_group_id->raw();
+      if (empty($form_state['values']['product_group_' . $group_id])) {
+        continue;
+      }
+      $group_form_state_values = &$form_state['values']['product_group_' . $group_id];
+      $group_form = $form['product_groups']['product_group_' . $group_id];
+
+      $product_id = $group_form_state_values['product_id'];
+      $product = commerce_product_load($product_id);
+      $quantity = $form_state['values']['quantity'];
+
+      $bundler_wrapper = $state_line_item_wrapper->commerce_bundle_id;
+      $group_wrapper = $state_line_item_wrapper->commerce_bundle_group_id;
+      $bundle_item_wrapper = $state_line_item_wrapper->commerce_bundle_item_id;
+
+      // Create the new bundle product line item of the same type.
+      $line_item = commerce_bundle_product_line_item_new(
+        $bundle_item_wrapper->value(),
+        $group_wrapper->value(),
+        $bundler_wrapper->value(),
+        $quantity,
+        0,
+        $state_line_item->data,
+        $state_line_item->type
+      );
+
+      // Allow modules to prepare this as necessary. This hook is defined by the
+      // Product Pricing module.
+      drupal_alter('commerce_product_calculate_sell_price_line_item', $line_item);
+
+      // Remove line item field values the user didn't have access to modify.
+      if (!empty($group_form_state_values['line_item_fields'])) {
+        foreach ($group_form_state_values['line_item_fields'] as $field_name => $value) {
+          // Note that we're checking the Commerce Cart settings that we inserted
+          // into this form element array back when we built the form. This means a
+          // module wanting to alter a line item field widget to be available must
+          // update both its form element's #access value and the field_access value
+          // of the #commerce_cart_settings array.
+          if (empty($form['line_item_fields'][$field_name]['#commerce_cart_settings']['field_access'])) {
+            unset($group_form_state_values['line_item_fields'][$field_name]);
+          }
+        }
+      }
+
+      // Unset the line item field values array if it is now empty.
+      if (empty($group_form_state_values['line_item_fields'])) {
+        unset($group_form_state_values['line_item_fields']);
+      }
+
+      // Add field data to the line item.
+      if (!empty($group_form['line_item_fields'])) {
+        field_attach_submit('commerce_line_item', $line_item, $group_form['line_item_fields'], $form_state);
+      }
+
+      // Process the unit price through Rules so it reflects the user's actual
+      // purchase price.
+      rules_invoke_event('commerce_product_calculate_sell_price', $line_item);
+
+      // Only attempt an Add to Cart if the line item has a valid unit price.
+      $line_item_wrapper = entity_metadata_wrapper('commerce_line_item', $line_item);
+
+      if (!is_null($line_item_wrapper->commerce_unit_price->value())) {
+        // Add the product to the specified shopping cart.
+        $state_line_item = $line_item;
+        $add_to_cart_deltas[] = $state_line_item_delta;
+      }
+      else {
+        drupal_set_message(t('%title could not be added to your cart.', array('%title' => entity_label($bundler_wrapper->type(), $bundler_wrapper->value()))), 'error');
+        return;
+      }
+    }
+  }
+
+  // Set bundle configuration.
+  $line_item_configs_updated = array();
+  $bundle_configs = commerce_bundle_line_item_get_bundle_configs($form_state['line_items']);
+  foreach ($bundle_configs as $bundle_config_id => $bundle_config_line_items) {
+    foreach ($bundle_config_line_items as $line_item) {
+      $line_item_wrapper = entity_metadata_wrapper('commerce_line_item', $line_item);
+      if (isset($line_item_wrapper->commerce_bundle_config_id)) {
+        $line_item_wrapper->commerce_bundle_config_id = $bundle_config_id;
+
+        if (isset($line_item->line_item_id)) {
+          $line_item_configs_updated[] = $line_item->line_item_id;
+        }
+      }
+    }
+  }
+
+  // Save line items.
+  foreach ($form_state['line_items'] as $delta => $line_item) {
+    if (in_array($delta, $add_to_cart_deltas)) {
+      // Add new line items to the cart.
+      $form_state['line_items'][$delta] = commerce_cart_product_add(
+        $form_state['values']['uid'],
+        $line_item,
+        isset($line_item->data['context']['add_to_cart_combine']) ? $line_item->data['context']['add_to_cart_combine'] : TRUE
+      );
+    }
+    elseif (isset($line_item->line_item_id) &&
+            in_array($line_item->line_item_id, $line_item_configs_updated)) {
+      // Update existing line items.
+      commerce_line_item_save($line_item);
+    }
+  }
+}
+
+/**
+ * Returns the attribute form for a given bundle line item.
+ *
+ * @param $line_item
+ *   The bundle line item.
+ * @param $form
+ *   The form array.
+ * @param $form_state
+ *   The form state.
+ *
+ * @return
+ *   An attribute form array
+ */
+function commerce_bundle_line_item_attribute_form($line_item, $form, &$form_state) {
+  $line_item_wrapper = entity_metadata_wrapper('commerce_line_item', $line_item);
+  if (!isset($line_item_wrapper->commerce_bundle_group_id)) {
+    return $form;
+  }
+
+  $group_id = $line_item_wrapper->commerce_bundle_group_id->raw();
+  $group = $line_item_wrapper->commerce_bundle_group_id->value();
+  $group_wrapper = entity_metadata_wrapper('commerce_product', $group);
+  if (!isset($group_wrapper->commerce_bundle_items)) {
+    return $form;
+  }
+
+  $group_product_ids = array();
+  foreach ($group_wrapper->commerce_bundle_items as $bundle_item_wrapper) {
+    // Skip disabled bundle items.
+    if (!$bundle_item_wrapper->status->value()) {
+      continue;
+    }
+
+    if (isset($bundle_item_wrapper->commerce_bundle_product) &&
+        ($bundle_item_product_id = $bundle_item_wrapper->commerce_bundle_product->raw())) {
+      $group_product_ids[$bundle_item_product_id] = $bundle_item_product_id;
+    }
+  }
+
+  if (empty($group_product_ids)) {
+    return $form;
+  }
+
+  // @todo: orginal cart form needed this, but bundle line items don't.
+  $line_item->data['context']['product_ids'] = $group_product_ids;
+
+  $form['product_id'] = array(
+    '#type' => 'select',
+    '#title' => 'test product',
+    '#default_value' => reset($group_product_ids),
+    '#options' => drupal_map_assoc($group_product_ids),
+    '#disabled' => TRUE,
+  );
   return $form;
 }

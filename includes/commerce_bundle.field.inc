@@ -167,8 +167,8 @@ function commerce_bundle_field_formatter_view($entity_type, $entity, $field, $in
           $line_item->data['context']['add_to_cart_combine'] = !empty($settings['combine']);
           $line_item->data['context']['show_single_product_attributes'] = !empty($settings['show_single_product_attributes']);
 
-          // Store line item per group id.
-          $line_items[$group->product_id] = $line_item;
+          // Store line item.
+          $line_items[] = $line_item;
         }
       }
 
@@ -177,6 +177,7 @@ function commerce_bundle_field_formatter_view($entity_type, $entity, $field, $in
           'form_id' => commerce_bundle_add_to_cart_form_id($group_ids),
           'line_items' => $line_items,
           'show_quantity' => $settings['show_quantity'],
+          'default_quantity' => $settings['default_quantity'],
         ),
       );
     }
@@ -247,7 +248,7 @@ function commerce_bundle_field_attach_view_alter(&$output, $context) {
         // Replace the array containing the arguments with the return value of
         // drupal_get_form(). It will be rendered when the rest of the object is
         // rendered for display.
-        $output[$field_name][$key] = drupal_get_form($arguments['form_id'], $arguments['line_items'], $arguments['show_quantity'], $cart_context);
+        $output[$field_name][$key] = drupal_get_form($arguments['form_id'], $arguments['line_items'], $arguments['show_quantity'], $arguments['default_quantity'], $cart_context);
       }
     }
   }

@@ -22,6 +22,7 @@ function commerce_bundle_item_hook_info() {
     'commerce_bundle_item_delete' => $base,
     'commerce_bundle_item_type_info' => $base,
     'commerce_bundle_item_type_info_alter' => $base,
+    'commerce_bundle_item_reference_default_delta_alter' => $base,
   );
 
   return $hooks;
