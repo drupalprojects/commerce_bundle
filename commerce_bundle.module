@@ -269,16 +269,23 @@ function commerce_bundle_product_line_item_populate($line_item, $bundler, $group
     $line_item_wrapper->commerce_display_path = '';
   }
 
-  // Set the unit price on the line item.
-  if (!empty($bundle_item->commerce_bundle_price)) {
-    $line_item->commerce_unit_price = $bundle_item->commerce_bundle_price;
+  // Calculate the bundle unit price on the line item.
+  $bundle_unit_price = array();
+  if ($group_wrapper->commerce_price->value()) {
+    $bundle_unit_price = commerce_price_wrapper_value($group_wrapper, 'commerce_price', TRUE);
   }
-  elseif (!empty($group->commerce_price)) {
-    $line_item->commerce_unit_price = $group->commerce_price;
+  elseif ($bundle_item_wrapper->commerce_bundle_price->value()) {
+    $bundle_unit_price = commerce_price_wrapper_value($bundle_item_wrapper, 'commerce_bundle_price', TRUE);
   }
   else {
-    $line_item->commerce_unit_price = $product->commerce_price;
+    $bundle_unit_price = commerce_price_wrapper_value($product_wrapper, 'commerce_price', TRUE);
   }
+
+  // TODO: add an alter hook for bundle price ?
+
+  // Set the unit price on the line item object if the product has a value in
+  // its commerce_price field.
+  $line_item->commerce_unit_price = $product->commerce_price;
 
   if (!is_null($line_item_wrapper->commerce_unit_price->value())) {
     // Add the base price to the components array.
@@ -290,6 +297,37 @@ function commerce_bundle_product_line_item_populate($line_item, $bundler, $group
         TRUE
       );
     }
+  }
+
+
+  // Set bundle unit price as a discount.
+  if (isset($bundle_unit_price['amount'])) {
+    $unit_price = commerce_price_wrapper_value($line_item_wrapper, 'commerce_unit_price', TRUE);
+
+    // Calculate the updated amount and create a price array representing the
+    // difference between it and the current amount.
+    $current_amount = $unit_price['amount'];
+
+    // Calculate the updated amount and create a price array representing the
+    // difference between it and the current amount.
+    $current_amount = $unit_price['amount'];
+    $updated_amount = $bundle_unit_price['amount'];
+
+    $difference = array(
+      'amount' => $bundle_unit_price['amount'] - $current_amount,
+      'currency_code' => $unit_price['currency_code'],
+      'data' => array(),
+    );
+
+    // Set the amount of the unit price and add the difference as a component.
+    $line_item_wrapper->commerce_unit_price->amount = $updated_amount;
+
+    $line_item_wrapper->commerce_unit_price->data = commerce_price_component_add(
+      $line_item_wrapper->commerce_unit_price->value(),
+      'discount',
+      $difference,
+      TRUE
+    );
   }
 }
 
@@ -377,7 +415,7 @@ function commerce_bundle_add_to_cart_form($form, &$form_state, $line_items, $sho
 
   // Store the line item passed to the form builder for reference on submit.
   $form_state['line_items'] = &$line_items;
-
+dpm($line_items, '$line_items from bundle line new()');
   // Add a generic class ID.
   $form['#attributes']['class'][] = drupal_html_class('commerce-bundle-add-to-cart');
   $form['#attributes']['class'][] = drupal_html_class('commerce-add-to-cart');
@@ -450,7 +488,6 @@ function commerce_bundle_add_to_cart_form($form, &$form_state, $line_items, $sho
       '#weight' => 45,
     );
   }
-
 
 
   $form['submit'] = array(
@@ -626,14 +663,12 @@ function commerce_bundle_add_to_cart_form_submit($form, &$form_state) {
   // Save line items.
   foreach ($form_state['line_items'] as $delta => $line_item) {
     if (in_array($delta, $add_to_cart_deltas)) {
-      //dpm($line_item, '$line_item before');
       // Add new line items to the cart.
       $form_state['line_items'][$delta] = commerce_cart_product_add(
         $form_state['values']['uid'],
         $line_item,
         isset($line_item->data['context']['add_to_cart_combine']) ? $line_item->data['context']['add_to_cart_combine'] : TRUE
       );
-      //dpm($form_state['line_items'][$delta], 'line after');
     }
     elseif (isset($line_item->line_item_id) &&
             in_array($line_item->line_item_id, $line_item_configs_updated)) {
@@ -699,5 +734,6 @@ function commerce_bundle_line_item_attribute_form($line_item, $form, &$form_stat
     '#options' => drupal_map_assoc($group_product_ids),
     '#disabled' => TRUE,
   );
+
   return $form;
 }
