@@ -532,14 +532,16 @@ function commerce_bundle_item_status_options_list() {
  *   The default bundle item entity.
  */
 function commerce_bundle_item_default_item($bundle_items) {
-  // Fetch the first delta value from the array.
-  reset($bundle_items);
-  $delta = key($bundle_items);
+  if (!empty($bundle_items)) {
+    // Fetch the first delta value from the array.
+    reset($bundle_items);
+    $delta = key($bundle_items);
 
-  // Allow other modules to specify a different delta value if desired.
-  drupal_alter('commerce_bundle_item_reference_default_delta', $delta, $bundle_items);
+    // Allow other modules to specify a different delta value if desired.
+    drupal_alter('commerce_bundle_item_reference_default_delta', $delta, $bundle_items);
 
-  return isset($bundle_items[$delta]) ? $bundle_items[$delta] : NULL;
+    return isset($bundle_items[$delta]) ? $bundle_items[$delta] : NULL;
+  }
 }
 
 
