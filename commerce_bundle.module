@@ -262,7 +262,6 @@ function commerce_bundle_product_line_item_populate($line_item, $bundler, $group
   }
 
   // Calculate the bundle unit price on the line item.
-  $bundle_unit_price = array();
   if ($group_wrapper->commerce_price->value()) {
     $bundle_unit_price = commerce_price_wrapper_value($group_wrapper, 'commerce_price', TRUE);
   }
@@ -279,8 +278,6 @@ function commerce_bundle_product_line_item_populate($line_item, $bundler, $group
   $line_item_wrapper->commerce_unit_price = $bundle_unit_price;
 
   if (!is_null($bundle_unit_price)) {
-    $unit_price = commerce_price_wrapper_value($line_item_wrapper, 'commerce_unit_price', TRUE);
-
     $line_item_wrapper->commerce_unit_price->data = commerce_price_component_add(
       $bundle_unit_price,
       'base_price',
@@ -1089,17 +1086,7 @@ function commerce_bundle_line_item_attribute_form($line_item, $form, &$form_stat
 function commerce_bundle_commerce_cart_line_item_refresh($line_item, $order_wrapper) {
   if ($line_item->type == 'commerce_bundle_line_item') {
     $line_item_wrapper = entity_metadata_wrapper('commerce_line_item', $line_item);
-    $product_wrapper = $line_item_wrapper->commerce_product;
 
-    // Set the price field on the product following bundles pricing precedence.
-    $group_price = $line_item_wrapper->commerce_bundle_group_id->commerce_bundle_group_price->value();
-    $bundle_item_price = $line_item_wrapper->commerce_bundle_item_id->commerce_bundle_price->value();
-    if (!empty($group_price)) {
-      $product_wrapper->commerce_price = $group_price;
-    }
-    elseif (!empty($bundle_item_price)) {
-      $product_wrapper->commerce_price = $bundle_item_price;
-    }
     commerce_bundle_product_line_item_populate($line_item_wrapper->value(),
       $line_item_wrapper->commerce_bundle_id->value(),
       $line_item_wrapper->commerce_bundle_group_id->value(),
