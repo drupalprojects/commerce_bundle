@@ -661,9 +661,7 @@ function commerce_bundle_line_item_attribute_form($line_item, $form, &$form_stat
     return $form;
   }
 
-  $group_id = $line_item_wrapper->commerce_bundle_group_id->raw();
-  $group = $line_item_wrapper->commerce_bundle_group_id->value();
-  $group_wrapper = entity_metadata_wrapper('commerce_product', $group);
+  $group_wrapper = $line_item_wrapper->commerce_bundle_group_id;
   if (!isset($group_wrapper->commerce_bundle_items)) {
     return $form;
   }
@@ -684,17 +682,400 @@ function commerce_bundle_line_item_attribute_form($line_item, $form, &$form_stat
   if (empty($group_product_ids)) {
     return $form;
   }
+  // We've gathered all the product id's for the current group of interest.
+  // Load all the active products intended for sale on this form.
+  $products = commerce_product_load_multiple($group_product_ids, array('status' => 1));
 
-  // @todo: orginal cart form needed this, but bundle line items don't.
-  $line_item->data['context']['product_ids'] = $group_product_ids;
+  // If no products were returned...
+  if (count($products) == 0) {
+    $form['submit'] = array(
+      '#type' => 'submit',
+      '#value' => t('Product not available'),
+      '#weight' => 15,
+      // Do not set #disabled in order not to prevent submission.
+      '#attributes' => array('disabled' => 'disabled'),
+      '#validate' => array('commerce_cart_add_to_cart_form_disabled_validate'),
+    );
+  }
+  else {
+    // If the form is for a single product and displaying attributes on a single
+    // product Add to Cart form is disabled in the form context, store the
+    // product_id in a hidden form field for use by the submit handler.
+    if (count($products) == 1 && empty($line_item->data['context']['show_single_product_attributes'])) {
+      $form_state['default_product'] = reset($products);
 
-  $form['product_id'] = array(
-    '#type' => 'select',
-    '#title' => 'test product',
-    '#default_value' => reset($group_product_ids),
-    '#options' => drupal_map_assoc($group_product_ids),
-    '#disabled' => TRUE,
-  );
+      $form['product_id'] = array(
+        '#type' => 'hidden',
+        '#value' => key($products),
+      );
+    }
+    else {
+      // However, if more than one products are represented on it, attempt to
+      // use smart select boxes for the product selection. If the products are
+      // all of the same type and there are qualifying fields on that product
+      // type, display their options for customer selection.
+      $qualifying_fields = array();
+      $same_type = TRUE;
+      $type = '';
+
+      // Find the default product so we know how to set default options on the
+      // various Add to Cart form widgets and an array of any matching product
+      // based on attribute selections so we can add a selection widget.
+      $matching_products = array();
+      $default_product = NULL;
+      $attribute_names = array();
+      $unchanged_attributes = array();
+
+      foreach ($products as $product_id => $product) {
+        $product_wrapper = entity_metadata_wrapper('commerce_product', $product);
+
+        // Store the first product type.
+        if (empty($type)) {
+          $type = $product->type;
+        }
+
+        // If the current product type is different from the first, we are not
+        // dealing with a set of same typed products.
+        if ($product->type != $type) {
+          $same_type = FALSE;
+        }
+
+        // If the form state contains a set of attribute data, use it to try
+        // and determine the default product.
+        $changed_attribute = NULL;
+
+        if (!empty($form_state['values']['attributes'])) {
+          $match = TRUE;
+
+          // Set an array of checked attributes for later comparison against the
+          // default matching product.
+          if (empty($attribute_names)) {
+            $attribute_names = (array) array_diff_key($form_state['values']['attributes'], array('product_select' => ''));
+            $unchanged_attributes = $form_state['values']['unchanged_attributes'];
+          }
+
+          foreach ($attribute_names as $key => $value) {
+            // If this is the attribute widget that was changed...
+            if ($value != $unchanged_attributes[$key]) {
+              // Store the field name.
+              $changed_attribute = $key;
+
+              // Clear the input for the "Select a product" widget now if it
+              // exists on the form since we know an attribute was changed.
+              unset($form_state['input']['attributes']['product_select']);
+            }
+
+            // If a field name has been stored and we've moved past it to
+            // compare the next attribute field...
+            if (!empty($changed_attribute) && $changed_attribute != $key) {
+              // Wipe subsequent values from the form state so the attribute
+              // widgets can use the default values from the new default product.
+              unset($form_state['input']['attributes'][$key]);
+
+              // Don't accept this as a matching product.
+              continue;
+            }
+
+            if ($product_wrapper->{$key}->raw() != $value) {
+              $match = FALSE;
+            }
+          }
+
+          // If the changed field name has already been stored, only accept the
+          // first matching product by ignoring the rest that would match. An
+          // exception is granted for additional matching products that share
+          // the exact same attribute values as the first.
+          if ($match && !empty($changed_attribute) && !empty($matching_products)) {
+            reset($matching_products);
+            $matching_product = $matching_products[key($matching_products)];
+            $matching_product_wrapper = entity_metadata_wrapper('commerce_product', $matching_product);
+
+            foreach ($attribute_names as $key => $value) {
+              if ($product_wrapper->{$key}->raw() != $matching_product_wrapper->{$key}->raw()) {
+                $match = FALSE;
+              }
+            }
+          }
+
+          if ($match) {
+            $matching_products[$product_id] = $product;
+          }
+        }
+      }
+
+      // Set the default product now if it isn't already set.
+      if (empty($matching_products)) {
+        // If a product ID value was passed in, use that product if it exists.
+        if (!empty($form_state['values']['product_id']) &&
+          !empty($products[$form_state['values']['product_id']])) {
+          $default_product = $products[$form_state['values']['product_id']];
+        }
+        elseif (empty($form_state['values']) &&
+          !empty($line_item_wrapper->commerce_product) &&
+          !empty($products[$line_item_wrapper->commerce_product->raw()])) {
+          // If this is the first time the form is built, attempt to use the
+          // product specified by the line item.
+          $default_product = $products[$line_item_wrapper->commerce_product->raw()];
+        }
+        else {
+          reset($products);
+          $default_product = $products[key($products)];
+        }
+      }
+      else {
+        // If the product selector has a value, use that.
+        if (!empty($form_state['values']['attributes']['product_select']) &&
+          !empty($products[$form_state['values']['attributes']['product_select']]) &&
+          in_array($products[$form_state['values']['attributes']['product_select']], $matching_products)) {
+          $default_product = $products[$form_state['values']['attributes']['product_select']];
+        }
+        else {
+          reset($matching_products);
+          $default_product = $matching_products[key($matching_products)];
+        }
+      }
+
+      // Wrap the default product for later use.
+      $default_product_wrapper = entity_metadata_wrapper('commerce_product', $default_product);
+
+      $form_state['default_product'] = $default_product;
+
+      // If all the products are of the same type...
+      if ($same_type) {
+        // Loop through all the field instances on that product type.
+        foreach (field_info_instances('commerce_product', $type) as $field_name => $instance) {
+          // A field qualifies if it is single value, required and uses a widget
+          // with a definite set of options. For the sake of simplicity, this is
+          // currently restricted to fields defined by the options module.
+          $field = field_info_field($field_name);
+
+          // If the instance is of a field type that is eligible to function as
+          // a product attribute field and if its attribute field settings
+          // specify that this functionality is enabled...
+          if (commerce_cart_field_attribute_eligible($field) && commerce_cart_field_instance_is_attribute($instance)) {
+            // Get the options properties from the options module for the
+            // attribute widget type selected for the field, defaulting to the
+            // select list options properties.
+            $commerce_cart_settings = commerce_cart_field_instance_attribute_settings($instance);
+
+            switch ($commerce_cart_settings['attribute_widget']) {
+              case 'checkbox':
+                $widget_type = 'onoff';
+                break;
+              case 'radios':
+                $widget_type = 'buttons';
+                break;
+              default:
+                $widget_type = 'select';
+            }
+
+            $properties = _options_properties($widget_type, FALSE, TRUE, TRUE);
+
+            // Try to fetch localized names.
+            $allowed_values = NULL;
+
+            // Prepare translated options if using the i18n_field module.
+            if (module_exists('i18n_field')) {
+              if (($translate = i18n_field_type_info($field['type'], 'translate_options'))) {
+                $allowed_values = $translate($field);
+                _options_prepare_options($allowed_values, $properties);
+              }
+
+              // Translate the field title if set.
+              if (!empty($instance['label'])) {
+                $instance['label'] = i18n_field_translate_property($instance, 'label');
+              }
+            }
+
+            // Otherwise just use the base language values.
+            if (empty($allowed_values)) {
+              $allowed_values = _options_get_options($field, $instance, $properties, 'commerce_product', $default_product);
+            }
+
+            // Only consider this field a qualifying attribute field if we could
+            // derive a set of options for it.
+            if (!empty($allowed_values)) {
+              $qualifying_fields[$field_name] = array(
+                'field' => $field,
+                'instance' => $instance,
+                'commerce_cart_settings' => $commerce_cart_settings,
+                'options' => $allowed_values,
+                'weight' => $instance['widget']['weight'],
+                'required' => $instance['required'],
+              );
+            }
+          }
+        }
+      }
+
+      // Otherwise for products of varying types, display a simple select list
+      // by product title.
+      if (!empty($qualifying_fields)) {
+        $used_options = array();
+        $field_has_options = array();
+
+        // Sort the fields by weight.
+        uasort($qualifying_fields, 'drupal_sort_weight');
+
+        foreach ($qualifying_fields as $field_name => $data) {
+          // Build an options array of widget options used by referenced products.
+          foreach ($products as $product_id => $product) {
+            $product_wrapper = entity_metadata_wrapper('commerce_product', $product);
+
+            // Only add options to the present array that appear on products that
+            // match the default value of the previously added attribute widgets.
+            foreach ($used_options as $used_field_name => $unused) {
+              // Don't apply this check for the current field being evaluated.
+              if ($used_field_name == $field_name) {
+                continue;
+              }
+
+              if (isset($form['attributes'][$used_field_name]['#default_value'])) {
+                if ($product_wrapper->{$used_field_name}->raw() != $form['attributes'][$used_field_name]['#default_value']) {
+                  continue 2;
+                }
+              }
+            }
+
+            // With our hard dependency on widgets provided by the Options
+            // module, we can make assumptions about where the data is stored.
+            if ($product_wrapper->{$field_name}->raw() != NULL) {
+              $field_has_options[$field_name] = TRUE;
+            }
+            $used_options[$field_name][] = $product_wrapper->{$field_name}->raw();
+          }
+
+          // If for some reason no options for this field are used, remove it
+          // from the qualifying fields array.
+          if (empty($field_has_options[$field_name]) || empty($used_options[$field_name])) {
+            unset($qualifying_fields[$field_name]);
+          }
+          else {
+            $form['attributes'][$field_name] = array(
+              '#type' => $data['commerce_cart_settings']['attribute_widget'],
+              '#title' => check_plain($data['instance']['label']),
+              '#options' => array_intersect_key($data['options'], drupal_map_assoc($used_options[$field_name])),
+              '#default_value' => $default_product_wrapper->{$field_name}->raw(),
+              '#weight' => $data['instance']['widget']['weight'],
+              '#ajax' => array(
+                'callback' => 'commerce_cart_add_to_cart_form_attributes_refresh',
+              ),
+            );
+
+            // Add the empty value if the field is not required and products on
+            // the form include the empty value.
+            if (!$data['required'] && in_array('', $used_options[$field_name])) {
+              $form['attributes'][$field_name]['#empty_value'] = '';
+            }
+
+            $form['unchanged_attributes'][$field_name] = array(
+              '#type' => 'value',
+              '#value' => $default_product_wrapper->{$field_name}->raw(),
+            );
+          }
+        }
+
+        if (!empty($form['attributes'])) {
+          $form['attributes'] += array(
+            '#tree' => 'TRUE',
+            '#prefix' => '<div class="attribute-widgets">',
+            '#suffix' => '</div>',
+            '#weight' => 0,
+          );
+          $form['unchanged_attributes'] += array(
+            '#tree' => 'TRUE',
+          );
+
+          // If the matching products array is empty, it means this is the first
+          // time the form is being built. We should populate it now with
+          // products that match the default attribute options.
+          if (empty($matching_products)) {
+            foreach ($products as $product_id => $product) {
+              $product_wrapper = entity_metadata_wrapper('commerce_product', $product);
+              $match = TRUE;
+
+              foreach (element_children($form['attributes']) as $field_name) {
+                if ($product_wrapper->{$field_name}->raw() != $form['attributes'][$field_name]['#default_value']) {
+                  $match = FALSE;
+                }
+              }
+
+              if ($match) {
+                $matching_products[$product_id] = $product;
+              }
+            }
+          }
+
+          // If there were more than one matching products for the current
+          // attribute selection, add a product selection widget.
+          if (count($matching_products) > 1) {
+            $options = array();
+
+            foreach ($matching_products as $product_id => $product) {
+              $options[$product_id] = $product->title;
+            }
+
+            // Note that this element by default is a select list, so its
+            // #options are not sanitized here. Sanitization will occur in a
+            // check_plain() in the function form_select_options(). If you alter
+            // this element to another #type, such as 'radios', you are also
+            // responsible for looping over its #options array and sanitizing
+            // the values.
+            $form['attributes']['product_select'] = array(
+              '#type' => 'select',
+              '#title' => t('Select a product'),
+              '#options' => $options,
+              '#default_value' => $default_product->product_id,
+              '#weight' => 40,
+              '#ajax' => array(
+                'callback' => 'commerce_cart_add_to_cart_form_attributes_refresh',
+              ),
+            );
+          }
+
+          $form['product_id'] = array(
+            '#type' => 'hidden',
+            '#value' => $default_product->product_id,
+          );
+        }
+      }
+
+      // If the products referenced were of different types or did not posess
+      // any qualifying attribute fields...
+      if (!$same_type || empty($qualifying_fields)) {
+        // For a single product form, just add the hidden product_id field.
+        if (count($products) == 1) {
+          $form['product_id'] = array(
+            '#type' => 'hidden',
+            '#value' => $default_product->product_id,
+          );
+        }
+        else {
+          // Otherwise add a product selection widget.
+          $options = array();
+
+          foreach ($products as $product_id => $product) {
+            $options[$product_id] = $product->title;
+          }
+
+          // Note that this element by default is a select list, so its #options
+          // are not sanitized here. Sanitization will occur in a check_plain() in
+          // the function form_select_options(). If you alter this element to
+          // another #type, such as 'radios', you are also responsible for looping
+          // over its #options array and sanitizing the values.
+          $form['product_id'] = array(
+            '#type' => 'select',
+            '#options' => $options,
+            '#default_value' => $default_product->product_id,
+            '#weight' => 0,
+            '#ajax' => array(
+              'callback' => 'commerce_cart_add_to_cart_form_attributes_refresh',
+            ),
+          );
+        }
+      }
+    }
+  }
 
   return $form;
 }
