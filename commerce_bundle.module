@@ -1122,3 +1122,14 @@ function commerce_bundle_commerce_cart_line_item_refresh($line_item, $order_wrap
     rules_invoke_event('commerce_product_calculate_sell_price', $line_item);
   }
 }
+
+/**
+ * Implements hook_commerce_cart_product_comparison_properties_alter().
+ */
+function commerce_bundle_commerce_cart_product_comparison_properties_alter(&$comparison_properties, $line_item_clone) {
+  // Alter for bundle line items.
+  if (isset($line_item_clone->type) && in_array($line_item_clone->type, commerce_bundle_line_item_types())) {
+    // Force separate line items based on generated bundle config id.
+    $comparison_properties[] = 'commerce_bundle_config_id';
+  }
+}
