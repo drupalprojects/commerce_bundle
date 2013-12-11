@@ -162,8 +162,10 @@ function commerce_bundle_line_item_get_bundle_configs($line_items) {
 /**
  * Creates a new bundle product line item populated with the proper product values.
  *
+ * @param $product
+ *   The fully loaded product entity.
  * @param $bundle_item
- *   The full loaded bundle item entity.
+ *   The fully loaded bundle item entity.
  * @param $group
  *   The fully loaded product group.
  * @param $bundler
@@ -186,7 +188,7 @@ function commerce_bundle_line_item_get_bundle_configs($line_items) {
  * @return
  *   The fully loaded line item populated with the product data as specified.
  */
-function commerce_bundle_product_line_item_new($bundle_item, $group, $bundler, $quantity = 1, $order_id = 0, $data = array(), $type = 'commerce_bundle_line_item') {
+function commerce_bundle_product_line_item_new($product, $bundle_item, $group, $bundler, $quantity = 1, $order_id = 0, $data = array(), $type = 'commerce_bundle_line_item') {
   // Ensure a default product line item type.
   if (empty($type)) {
     $type = 'commerce_bundle_line_item';
@@ -201,7 +203,7 @@ function commerce_bundle_product_line_item_new($bundle_item, $group, $bundler, $
   ));
 
   // Populate it with the entity information.
-  commerce_bundle_product_line_item_populate($line_item, $bundler, $group, $bundle_item);
+  commerce_bundle_product_line_item_populate($line_item, $bundler, $group, $bundle_item, $product);
 
   // Return the line item.
   return $line_item;
@@ -218,8 +220,10 @@ function commerce_bundle_product_line_item_new($bundle_item, $group, $bundler, $
  *   The fully loaded product group.
  * @param $bundle_item
  *   The fully loaded bundle item entity.
+ * @param $product
+ *   The fully loaded product entity.
  */
-function commerce_bundle_product_line_item_populate($line_item, $bundler, $group, $bundle_item) {
+function commerce_bundle_product_line_item_populate($line_item, $bundler, $group, $bundle_item, $product) {
   // Wrap the entities.
   $line_item_wrapper = entity_metadata_wrapper('commerce_line_item', $line_item);
   $group_wrapper = entity_metadata_wrapper('commerce_product', $group);
@@ -241,8 +245,6 @@ function commerce_bundle_product_line_item_populate($line_item, $bundler, $group
   }
 
   // Set the product reference.
-  $product_wrapper = $bundle_item_wrapper->commerce_bundle_product;
-  $product = $product_wrapper->value();
   $line_item_wrapper->commerce_product = $product->product_id;
 
   // Set the label to be the product SKU.
@@ -260,7 +262,7 @@ function commerce_bundle_product_line_item_populate($line_item, $bundler, $group
     // Update line item quantity.
     $line_item->quantity *= (int) $unit_quantity;
   }
-
+  $product_wrapper = entity_metadata_wrapper('commerce_product', $product);
   // Calculate the bundle unit price on the line item.
   if ($group_wrapper->commerce_price->value()) {
     $bundle_unit_price = commerce_price_wrapper_value($group_wrapper, 'commerce_price', TRUE);
@@ -538,13 +540,12 @@ function commerce_bundle_add_to_cart_form_submit($form, &$form_state) {
       $product_id = $group_form_state_values['product_id'];
       $product = commerce_product_load($product_id);
 
-
       $bundler_wrapper = $state_line_item_wrapper->commerce_bundle_id;
       $group_wrapper = $state_line_item_wrapper->commerce_bundle_group_id;
       $bundle_item_wrapper = $state_line_item_wrapper->commerce_bundle_item_id;
 
       // Create the new bundle product line item of the same type.
-      $line_item = commerce_bundle_product_line_item_new(
+      $line_item = commerce_bundle_product_line_item_new($product,
         $bundle_item_wrapper->value(),
         $group_wrapper->value(),
         $bundler_wrapper->value(),
@@ -741,14 +742,14 @@ function commerce_bundle_line_item_attribute_form($line_item, $form, &$form_stat
         // and determine the default product.
         $changed_attribute = NULL;
 
-        if (!empty($form_state['values']['attributes'])) {
+        if (!empty($form_state['values']['product_group_' . $group_wrapper->product_id->value()]['attributes'])) {
           $match = TRUE;
 
           // Set an array of checked attributes for later comparison against the
           // default matching product.
           if (empty($attribute_names)) {
-            $attribute_names = (array) array_diff_key($form_state['values']['attributes'], array('product_select' => ''));
-            $unchanged_attributes = $form_state['values']['unchanged_attributes'];
+            $attribute_names = (array) array_diff_key($form_state['values']['product_group_' . $group_wrapper->product_id->value()]['attributes'], array('product_select' => ''));
+            $unchanged_attributes = $form_state['values']['product_group_' . $group_wrapper->product_id->value()]['unchanged_attributes'];
           }
 
           foreach ($attribute_names as $key => $value) {
@@ -803,9 +804,9 @@ function commerce_bundle_line_item_attribute_form($line_item, $form, &$form_stat
       // Set the default product now if it isn't already set.
       if (empty($matching_products)) {
         // If a product ID value was passed in, use that product if it exists.
-        if (!empty($form_state['values']['product_id']) &&
-          !empty($products[$form_state['values']['product_id']])) {
-          $default_product = $products[$form_state['values']['product_id']];
+        if (!empty($form_state['values']['product_group_' . $group_wrapper->product_id->value()]['product_id']) &&
+          !empty($products[$form_state['values']['product_group_' . $group_wrapper->product_id->value()]['product_id']])) {
+          $default_product = $products[$form_state['values']['product_group_' . $group_wrapper->product_id->value()]['product_id']];
         }
         elseif (empty($form_state['values']) &&
           !empty($line_item_wrapper->commerce_product) &&
@@ -821,10 +822,10 @@ function commerce_bundle_line_item_attribute_form($line_item, $form, &$form_stat
       }
       else {
         // If the product selector has a value, use that.
-        if (!empty($form_state['values']['attributes']['product_select']) &&
-          !empty($products[$form_state['values']['attributes']['product_select']]) &&
-          in_array($products[$form_state['values']['attributes']['product_select']], $matching_products)) {
-          $default_product = $products[$form_state['values']['attributes']['product_select']];
+        if (!empty($form_state['values']['product_group_' . $group_wrapper->product_id->value()]['attributes']['product_select']) &&
+          !empty($products[$form_state['values']['product_group_' . $group_wrapper->product_id->value()]['attributes']['product_select']]) &&
+          in_array($products[$form_state['values']['product_group_' . $group_wrapper->product_id->value()]['attributes']['product_select']], $matching_products)) {
+          $default_product = $products[$form_state['values']['product_group_' . $group_wrapper->product_id->value()]['attributes']['product_select']];
         }
         else {
           reset($matching_products);
@@ -1090,7 +1091,8 @@ function commerce_bundle_commerce_cart_line_item_refresh($line_item, $order_wrap
     commerce_bundle_product_line_item_populate($line_item_wrapper->value(),
       $line_item_wrapper->commerce_bundle_id->value(),
       $line_item_wrapper->commerce_bundle_group_id->value(),
-      $line_item_wrapper->commerce_bundle_item_id->value());
+      $line_item_wrapper->commerce_bundle_item_id->value(),
+      $line_item_wrapper->commerce_product->value());
 
     // Process the unit price through Rules so it reflects the user's actual
     // current purchase price.

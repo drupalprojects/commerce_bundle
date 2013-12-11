@@ -158,7 +158,8 @@ function commerce_bundle_field_formatter_view($entity_type, $entity, $field, $in
 
         $bundle_items = $group_wrapper->{$bundle_item_field_name}->value();
         if ($bundle_item = commerce_bundle_item_default_item($bundle_items)) {
-          $line_item = commerce_bundle_product_line_item_new($bundle_item, $group, $entity, $settings['default_quantity'], 0, array(), $type);
+          $bundle_item_wrapper = entity_metadata_wrapper('commerce_bundle_item', $bundle_item);
+          $line_item = commerce_bundle_product_line_item_new($bundle_item_wrapper->commerce_bundle_product->value(), $bundle_item, $group, $entity, $settings['default_quantity'], 0, array(), $type);
 
           // Set product ids to an empty array. Product ids are populated
           $line_item->data['context']['product_ids'] = array();
