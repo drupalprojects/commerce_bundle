@@ -7,3 +7,11 @@ core = 7.x
 projects[entity][type] = module
 projects[entity][subdir] = contrib
 projects[entity][version] = 1.2
+
+; Commerce
+projects[commerce][type] = module
+projects[commerce][subdir] = contrib
+
+; Entity Reference
+projects[entityreference][type] = module
+projects[entityreference][subdir] = contrib
