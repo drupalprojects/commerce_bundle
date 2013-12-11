@@ -1,7 +1,6 @@
 name = Commerce Bundle
 description = Provides product bundles for Drupal Commerce.
 package = Commerce (contrib)
-dependencies[] = commerce
 dependencies[] = commerce_product
 dependencies[] = commerce_line_item
 dependencies[] = commerce_bundle_item
