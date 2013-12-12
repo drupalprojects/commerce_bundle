@@ -686,6 +686,7 @@ function commerce_bundle_line_item_attribute_form($line_item, $form, &$form_stat
   $group_id = $line_item_wrapper->commerce_bundle_group_id->raw();
   $group_element_key = 'product_group_' . $group_id;
   $group_state_storage = &$form_state['product_groups'][$group_element_key];
+  $group_state_values = &$form_state['values'][$group_element_key];
 
   $group_product_ids = array();
   foreach ($group_wrapper->commerce_bundle_items as $bundle_item_wrapper) {
@@ -765,14 +766,14 @@ function commerce_bundle_line_item_attribute_form($line_item, $form, &$form_stat
         // and determine the default product.
         $changed_attribute = NULL;
 
-        if (!empty($form_state['values'][$group_element_key]['attributes'])) {
+        if (!empty($group_state_values['attributes'])) {
           $match = TRUE;
 
           // Set an array of checked attributes for later comparison against the
           // default matching product.
           if (empty($attribute_names)) {
-            $attribute_names = (array) array_diff_key($form_state['values'][$group_element_key]['attributes'], array('product_select' => ''));
-            $unchanged_attributes = $form_state['values'][$group_element_key]['unchanged_attributes'];
+            $attribute_names = (array) array_diff_key($group_state_values['attributes'], array('product_select' => ''));
+            $unchanged_attributes = $group_state_values['unchanged_attributes'];
           }
 
           foreach ($attribute_names as $key => $value) {
@@ -783,7 +784,7 @@ function commerce_bundle_line_item_attribute_form($line_item, $form, &$form_stat
 
               // Clear the input for the "Select a product" widget now if it
               // exists on the form since we know an attribute was changed.
-              unset($form_state['input']['attributes']['product_select']);
+              unset($form_state['input'][$group_element_key]['attributes']['product_select']);
             }
 
             // If a field name has been stored and we've moved past it to
@@ -791,7 +792,7 @@ function commerce_bundle_line_item_attribute_form($line_item, $form, &$form_stat
             if (!empty($changed_attribute) && $changed_attribute != $key) {
               // Wipe subsequent values from the form state so the attribute
               // widgets can use the default values from the new default product.
-              unset($form_state['input']['attributes'][$key]);
+              unset($form_state['input'][$group_element_key]['attributes'][$key]);
 
               // Don't accept this as a matching product.
               continue;
@@ -827,9 +828,9 @@ function commerce_bundle_line_item_attribute_form($line_item, $form, &$form_stat
       // Set the default product now if it isn't already set.
       if (empty($matching_products)) {
         // If a product ID value was passed in, use that product if it exists.
-        if (!empty($form_state['values'][$group_element_key]['product_id']) &&
-          !empty($products[$form_state['values'][$group_element_key]['product_id']])) {
-          $default_product = $products[$form_state['values'][$group_element_key]['product_id']];
+        if (!empty($group_state_values['product_id']) &&
+          !empty($products[$group_state_values['product_id']])) {
+          $default_product = $products[$group_state_values['product_id']];
         }
         elseif (empty($form_state['values']) &&
           !empty($line_item_wrapper->commerce_product) &&
@@ -845,10 +846,10 @@ function commerce_bundle_line_item_attribute_form($line_item, $form, &$form_stat
       }
       else {
         // If the product selector has a value, use that.
-        if (!empty($form_state['values'][$group_element_key]['attributes']['product_select']) &&
-          !empty($products[$form_state['values'][$group_element_key]['attributes']['product_select']]) &&
-          in_array($products[$form_state['values'][$group_element_key]['attributes']['product_select']], $matching_products)) {
-          $default_product = $products[$form_state['values'][$group_element_key]['attributes']['product_select']];
+        if (!empty($group_state_values['attributes']['product_select']) &&
+          !empty($products[$group_state_values['attributes']['product_select']]) &&
+          in_array($products[$group_state_values['attributes']['product_select']], $matching_products)) {
+          $default_product = $products[$group_state_values['attributes']['product_select']];
         }
         else {
           reset($matching_products);
