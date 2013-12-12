@@ -18,6 +18,21 @@ function commerce_bundle_views_api() {
 }
 
 /**
+ * Implements of hook_entity_info_alter().
+ */
+function commerce_bundle_entity_info_alter(&$info) {
+  // Add custom view mode for add to cart.
+  if (isset($info['commerce_product'])) {
+    $info['commerce_product']['view modes']['commerce_bundle_add_to_cart_form'] = array(
+      'label' => t('Commerce Bundle: Add to cart form'),
+      'custom settings' => FALSE,
+    );
+  }
+
+  return $info;
+}
+
+/**
  * Retuns an array of bundle line item types
  */
 function commerce_bundle_line_item_types() {

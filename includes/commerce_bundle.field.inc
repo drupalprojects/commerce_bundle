@@ -21,6 +21,7 @@ function commerce_bundle_field_formatter_info() {
         'combine' => TRUE,
         'show_single_product_attributes' => FALSE,
         'line_item_type' => 'commerce_bundle_line_item',
+        'product_view_mode' => 'commerce_bundle_add_to_cart_form',
       ),
     ),
   );
@@ -81,6 +82,28 @@ function commerce_bundle_field_formatter_settings_form($field, $instance, $view_
         '#value' => key($line_item_types),
       );
     }
+
+    // View modes.
+    $product_entity_info = entity_get_info('commerce_product');
+    if (!empty($product_entity_info['view modes'])) {
+      $view_mode_options = array();
+      foreach ($product_entity_info['view modes'] as $view_mode => $view_mode_info) {
+        $view_mode_options[$view_mode] = check_plain($view_mode_info['label']);
+      }
+
+      $element['product_view_mode'] = array(
+        '#type' => 'select',
+        '#title' => t('Product rendered view mode'),
+        '#options' => $view_mode_options,
+        '#default_value' => $settings['product_view_mode'],
+      );
+    }
+    else {
+      $element['product_view_mode'] = array(
+        '#type' => 'hidden',
+        '#value' => $settings['product_view_mode'],
+      );
+    }
   }
 
   return $element;
@@ -115,6 +138,8 @@ function commerce_bundle_field_formatter_settings_summary($field, $instance, $vi
     if (count(commerce_bundle_line_item_types()) > 1) {
       $summary[] = t('Add to Cart line item type: @type', array('@type' => commerce_line_item_type_get_name($settings['line_item_type'])));
     }
+
+    $summary[] = t('Product view mode: @value', array('@value' => $settings['product_view_mode']));
   }
 
   return implode('<br />', $summary);
@@ -179,6 +204,7 @@ function commerce_bundle_field_formatter_view($entity_type, $entity, $field, $in
           'line_items' => $line_items,
           'show_quantity' => $settings['show_quantity'],
           'default_quantity' => $settings['default_quantity'],
+          'product_view_mode' => $settings['product_view_mode'],
         ),
       );
     }
@@ -224,7 +250,6 @@ function commerce_bundle_field_attach_view_alter(&$output, $context) {
       // that references the product by looking at the entity this product
       // reference field is attached to.
       $cart_context['class_prefix'] = $context['entity_type'] . '-' . $entity_id;
-      $cart_context['view_mode'] = $context['entity_type'] . '_' . $element['#view_mode'];
 
       $entity_uri = entity_uri($context['entity_type'], $element['#object']);
 
@@ -249,6 +274,7 @@ function commerce_bundle_field_attach_view_alter(&$output, $context) {
         // Replace the array containing the arguments with the return value of
         // drupal_get_form(). It will be rendered when the rest of the object is
         // rendered for display.
+        $cart_context['view_mode'] = $arguments['product_view_mode'];
         $output[$field_name][$key] = drupal_get_form($arguments['form_id'], $arguments['line_items'], $arguments['show_quantity'], $arguments['default_quantity'], $cart_context);
       }
     }
