@@ -442,15 +442,19 @@ function commerce_bundle_add_to_cart_form($form, &$form_state, $line_items, $sho
 
     // Update product to attributes default product.
     if (!empty($form_state['product_groups'][$group_element_key]['default_product'])) {
-      $line_item_wrapper->commerce_product = $form_state['product_groups'][$group_element_key]['default_product'];
+      $group_default_product = $form_state['product_groups'][$group_element_key]['default_product'];
+      $line_item_wrapper->commerce_product = $group_default_product;
 
-      // Set the correct bundle_item_id for the default product.
-      foreach ($line_item_wrapper->commerce_bundle_group_id->commerce_bundle_items as $bundle_item_wrapper) {
-        if ($bundle_item_wrapper->commerce_bundle_product->product_id->raw() == $line_item_wrapper->commerce_product->product_id->raw()) {
-          $line_item_wrapper->commerce_bundle_item_id = $bundle_item_wrapper->item_id->raw();
-        }
-      }
+      // Find the bundle_item for the default product.
+      $default_bundle_item = commerce_bundle_item_get_product_item(
+        $line_item_wrapper->commerce_bundle_group_id->commerce_bundle_items->value(),
+        $group_default_product->product_id
+      );
+
+      // Set line item bundle item even if return is NULL.
+      $line_item_wrapper->commerce_bundle_item_id = $default_bundle_item;
     }
+
     // Update the bundle total price. Default currency code is the first line
     // item in $form_state.
     if (empty($currency_code)) {

@@ -515,6 +515,23 @@ function commerce_bundle_item_status_options_list() {
 }
 
 /**
+ * Returns first bundle item that contains the product id.
+ *
+ * @param $bundle_items
+ *   An array of bundle item entities.
+ * @return
+ *   The first bundle item containing the product.
+ */
+function commerce_bundle_item_get_product_item($bundle_items, $product_id) {
+  foreach ($bundle_items as $bundle_item) {
+    $bundle_item_wrapper = entity_metadata_wrapper('commerce_bundle_item', $bundle_item);
+    if ($bundle_item_wrapper->commerce_bundle_product->product_id->raw() == $product_id) {
+      return $bundle_item;
+    }
+  }
+}
+
+/**
  * Returns the default referenced bundle item from a product group.
  *
  * The basic behavior for determining a default bundle item from an array of
