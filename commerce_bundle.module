@@ -430,12 +430,28 @@ function commerce_bundle_add_to_cart_form($form, &$form_state, $line_items, $sho
 
     // Add group fields.
     // TODO: add setting for group product view mode?
+    $group_form['header'] = array(
+      '#prefix' => '<div class="commerce-bundle-group-header">',
+      '#suffix' => '</div>',
+      'unit_quantity' => array(
+        '#prefix' => '<span class="commerce-bundle-group-quantity">',
+        '#suffix' => '</span> ',
+      ),
+      'title' => array(
+        '#prefix' => '<span class="commerce-bundle-group-title">',
+        '#suffix' => '</span>',
+      ),
+    );
+
+    if ($group_unit_qty = $line_item_wrapper->commerce_bundle_unit_quantity->value()) {
+      $group_form['header']['unit_quantity']['#markup'] = t('@unit_quantity x', array('@unit_quantity' => $group_unit_qty));
+    }
+
     if ($group_title = $line_item_wrapper->commerce_bundle_group_id->title->value()) {
-      $group_form['title'] = array(
-        '#prefix' => '<div class="commerce-bundle-group-title">',
-        '#markup' => check_plain($group_title),
-        '#suffix' => '</div>',
-      );
+      $group_form['header']['title']['#markup'] = check_plain($group_title);
+    }
+    else {
+      $group_form['header']['title']['#markup'] = t('Product');
     }
 
     // Build attribute form.
