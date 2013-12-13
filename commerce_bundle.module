@@ -1230,8 +1230,8 @@ function commerce_bundle_get_bundle_product_price($group_id, $bundle_item_id) {
   $bundle_item_wrapper = entity_metadata_wrapper('commerce_bundle_item', current($bundle_item));
 
   // Calculate the bundle unit price on the line item.
-  if ($group_wrapper->commerce_price->value()) {
-    $bundle_unit_price = commerce_price_wrapper_value($group_wrapper, 'commerce_price', TRUE);
+  if ($group_wrapper->commerce_bundle_group_price->value()) {
+    $bundle_unit_price = commerce_price_wrapper_value($group_wrapper, 'commerce_bundle_group_price', TRUE);
   }
   elseif ($bundle_item_wrapper->commerce_bundle_price->value()) {
     $bundle_unit_price = commerce_price_wrapper_value($bundle_item_wrapper, 'commerce_bundle_price', TRUE);
