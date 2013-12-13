@@ -412,6 +412,16 @@ function commerce_bundle_add_to_cart_form($form, &$form_state, $line_items, $sho
       continue;
     }
 
+    $group_unit_qty = 1;
+    if (isset($line_item_wrapper->commerce_bundle_unit_quantity)) {
+      $group_unit_qty = $line_item_wrapper->commerce_bundle_unit_quantity->value();
+
+      // Skip if unit qty is set to 0.
+      if (!$group_unit_qty) {
+        continue;
+      }
+    }
+
     $group_id = $line_item_wrapper->commerce_bundle_group_id->raw();
     $group_ids[] = $line_item_wrapper->commerce_bundle_group_id->raw();
     $group_element_key = 'product_group_' . $group_id;
@@ -435,6 +445,7 @@ function commerce_bundle_add_to_cart_form($form, &$form_state, $line_items, $sho
       '#suffix' => '</div>',
       'unit_quantity' => array(
         '#prefix' => '<span class="commerce-bundle-group-quantity">',
+        '#markup' => t('@unit_quantity x', array('@unit_quantity' => $group_unit_qty)),
         '#suffix' => '</span> ',
       ),
       'title' => array(
@@ -442,10 +453,6 @@ function commerce_bundle_add_to_cart_form($form, &$form_state, $line_items, $sho
         '#suffix' => '</span>',
       ),
     );
-
-    if ($group_unit_qty = $line_item_wrapper->commerce_bundle_unit_quantity->value()) {
-      $group_form['header']['unit_quantity']['#markup'] = t('@unit_quantity x', array('@unit_quantity' => $group_unit_qty));
-    }
 
     if ($group_title = $line_item_wrapper->commerce_bundle_group_id->title->value()) {
       $group_form['header']['title']['#markup'] = check_plain($group_title);
@@ -478,7 +485,7 @@ function commerce_bundle_add_to_cart_form($form, &$form_state, $line_items, $sho
       $currency_code = $line_item_wrapper->commerce_unit_price->currency_code->value();
     }
     $bundle_product_price = commerce_bundle_get_bundle_product_price($group_id, $line_item_wrapper->commerce_bundle_item_id->raw());
-    $form_state['bundle_total_price'] += $bundle_product_price['amount'];
+    $form_state['bundle_total_price'] += $group_unit_qty * $bundle_product_price['amount'];
   }
   unset($line_item, $group_form, $group_state);
 
