@@ -76,10 +76,10 @@ function commerce_bundle_field_formatter_settings_form($field, $instance, $view_
         '#default_value' => $settings['line_item_type'],
       );
     }
-    else {
+    elseif ($line_item_types) {
       $element['line_item_type'] = array(
         '#type' => 'hidden',
-        '#value' => key($line_item_types),
+        '#value' => reset($line_item_types),
       );
     }
 
