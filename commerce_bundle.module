@@ -64,7 +64,7 @@ function commerce_bundle_commerce_bundle_item_can_delete($entity) {
     ->addTag('commerce_bundle_commerce_bundle_item_can_delete')
     ->entityCondition('entity_type', 'commerce_line_item', '=')
     ->entityCondition('bundle', commerce_bundle_line_item_types(), 'IN')
-    ->fieldCondition('commerce_bundle_item', 'target_id', $entity->item_id, '=')
+    ->fieldCondition('commerce_bundle_item_id', 'target_id', $entity->item_id, '=')
     ->count();
 
   return $query->execute() == 0;
@@ -277,22 +277,12 @@ function commerce_bundle_product_line_item_populate($line_item, $bundler, $group
     // Update line item quantity.
     $line_item->quantity *= (int) $unit_quantity;
   }
-  $product_wrapper = entity_metadata_wrapper('commerce_product', $product);
-  // Calculate the bundle unit price on the line item.
-  if ($group_wrapper->commerce_price->value()) {
-    $bundle_unit_price = commerce_price_wrapper_value($group_wrapper, 'commerce_price', TRUE);
-  }
-  elseif ($bundle_item_wrapper->commerce_bundle_price->value()) {
-    $bundle_unit_price = commerce_price_wrapper_value($bundle_item_wrapper, 'commerce_bundle_price', TRUE);
-  }
-  else {
-    $bundle_unit_price = commerce_price_wrapper_value($product_wrapper, 'commerce_price', TRUE);
-  }
 
-  // TODO: add an alter hook for bundle price ?
-
+  $bundle_unit_price = commerce_bundle_get_bundle_product_price($group->product_id, $bundle_item->item_id);
   // Set the unit price as the resolved bundle price.
   $line_item_wrapper->commerce_unit_price = $bundle_unit_price;
+
+  // TODO: add an alter hook for bundle price ?
 
   if (!is_null($bundle_unit_price)) {
     $line_item_wrapper->commerce_unit_price->data = commerce_price_component_add(
@@ -413,6 +403,8 @@ function commerce_bundle_add_to_cart_form($form, &$form_state, $line_items, $sho
 
   // Build attribute forms per product group.
   $group_ids = array();
+  $form_state['bundle_total_price'] = 0;
+  $currency_code = NULL;
   foreach ($line_items as &$line_item) {
     $line_item_wrapper = entity_metadata_wrapper('commerce_line_item', $line_item);
     if (!isset($line_item_wrapper->commerce_bundle_group_id)) {
@@ -451,7 +443,21 @@ function commerce_bundle_add_to_cart_form($form, &$form_state, $line_items, $sho
     // Update product to attributes default product.
     if (!empty($form_state['product_groups'][$group_element_key]['default_product'])) {
       $line_item_wrapper->commerce_product = $form_state['product_groups'][$group_element_key]['default_product'];
+
+      // Set the correct bundle_item_id for the default product.
+      foreach ($line_item_wrapper->commerce_bundle_group_id->commerce_bundle_items as $bundle_item_wrapper) {
+        if ($bundle_item_wrapper->commerce_bundle_product->product_id->raw() == $line_item_wrapper->commerce_product->product_id->raw()) {
+          $line_item_wrapper->commerce_bundle_item_id = $bundle_item_wrapper->item_id->raw();
+        }
+      }
     }
+    // Update the bundle total price. Default currency code is the first line
+    // item in $form_state.
+    if (empty($currency_code)) {
+      $currency_code = $line_item_wrapper->commerce_unit_price->currency_code->value();
+    }
+    $bundle_product_price = commerce_bundle_get_bundle_product_price($group_id, $line_item_wrapper->commerce_bundle_item_id->raw());
+    $form_state['bundle_total_price'] += $bundle_product_price['amount'];
   }
   unset($line_item, $group_form, $group_state);
 
@@ -490,7 +496,12 @@ function commerce_bundle_add_to_cart_form($form, &$form_state, $line_items, $sho
       '#weight' => 45,
     );
   }
-
+  // Add the total bundle price to the form.
+  $form['total_bundle_price'] = array(
+    '#prefix' => '<div class="total-bundle-price">',
+    '#markup' => commerce_currency_format($form_state['bundle_total_price'], $currency_code),
+    '#suffix' => '</div>',
+  );
 
   $form['submit'] = array(
     '#type' => 'submit',
@@ -1171,4 +1182,35 @@ function commerce_bundle_commerce_cart_line_item_refresh($line_item, $order_wrap
 function commerce_bundle_commerce_cart_product_comparison_properties_alter(&$comparison_properties, $line_item_clone) {
   // Force separate line items based on generated bundle config id.
   $comparison_properties[] = 'commerce_bundle_config_id';
+}
+
+/**
+ * Returns the correct price for a bundle product based on pricing precedence.
+ *
+ * @param $group_id
+ *   The grouping products product id.
+ * @param $bundle_item_id
+ *   The bundle item's id.
+ * @return array $bundle_unit_price
+ *   A price field data array.
+ */
+
+function commerce_bundle_get_bundle_product_price($group_id, $bundle_item_id) {
+  $group_product = commerce_product_load($group_id);
+  $group_wrapper = entity_metadata_wrapper('commerce_product', $group_product);
+  $bundle_item = entity_load('commerce_bundle_item', array($bundle_item_id));
+  $bundle_item_wrapper = entity_metadata_wrapper('commerce_bundle_item', current($bundle_item));
+
+  // Calculate the bundle unit price on the line item.
+  if ($group_wrapper->commerce_price->value()) {
+    $bundle_unit_price = commerce_price_wrapper_value($group_wrapper, 'commerce_price', TRUE);
+  }
+  elseif ($bundle_item_wrapper->commerce_bundle_price->value()) {
+    $bundle_unit_price = commerce_price_wrapper_value($bundle_item_wrapper, 'commerce_bundle_price', TRUE);
+  }
+  else {
+    $bundle_unit_price = commerce_price_wrapper_value($bundle_item_wrapper->commerce_bundle_product, 'commerce_price', TRUE);
+  }
+
+  return $bundle_unit_price;
 }
