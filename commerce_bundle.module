@@ -63,8 +63,9 @@ function commerce_bundle_commerce_bundle_item_can_delete($entity) {
   $query
     ->addTag('commerce_bundle_commerce_bundle_item_can_delete')
     ->entityCondition('entity_type', 'commerce_line_item', '=')
-    ->entityCondition('bundle', commerce_bundle_line_item_types(), 'IN')
+    ->entityCondition('bundle', $line_item_types, 'IN')
     ->fieldCondition('commerce_bundle_item_id', 'target_id', $entity->item_id, '=')
+    ->addTag('DANGEROUS_ACCESS_CHECK_OPT_OUT')
     ->count();
 
   return $query->execute() == 0;
