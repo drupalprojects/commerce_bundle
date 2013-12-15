@@ -430,6 +430,10 @@ function commerce_bundle_add_to_cart_form($form, &$form_state, $line_items, $sho
     // Build group form.
     $groups_container[$group_element_key] = array(
       '#type' => 'container',
+      '#attributes' => array('class' => array(
+        'commerce-bundle-product-group',
+        'commerce-bundle-product-group-' . $group_id,
+      )),
       '#tree' => TRUE,
     );
     $group_form = &$groups_container[$group_element_key];
