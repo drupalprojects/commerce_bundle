@@ -22,9 +22,11 @@ function commerce_bundle_field_formatter_info() {
         'show_single_product_attributes' => FALSE,
         'line_item_type' => 'commerce_bundle_line_item',
         'product_view_mode' => 'commerce_bundle_add_to_cart_form',
+        'bundle_total_price_label' => t('Total Bundle Price'),
       ),
     ),
   );
+  dpm('stop');
 }
 
 /**
@@ -41,6 +43,13 @@ function commerce_bundle_field_formatter_settings_form($field, $instance, $view_
       '#type' => 'checkbox',
       '#title' => t('Display a textfield quantity widget on the add to cart form.'),
       '#default_value' => $settings['show_quantity'],
+    );
+
+    $element['bundle_total_price_label'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Total Bundle Price Label'),
+      '#default_value' => $settings['bundle_total_price_label'],
+      '#size' => 16,
     );
 
     $element['default_quantity'] = array(
@@ -131,6 +140,7 @@ function commerce_bundle_field_formatter_settings_summary($field, $instance, $vi
     $summary = array(
       t('Quantity widget: !status', array('!status' => !empty($settings['show_quantity']) ? t('Enabled') : t('Disabled'))),
       t('Default quantity: @quantity', array('@quantity' => $settings['default_quantity'])),
+      t('Total Bundle Price Label: @label', array('@label' => $settings['bundle_total_price_label'])),
       t('Combine like items: !status', array('!status' => !empty($settings['combine']) ? t('Enabled') : t('Disabled'))),
       t('!visibility attributes on single product forms.', array('!visibility' => !empty($settings['show_single_product_attributes']) ? t('Showing') : t('Hiding'))),
     );
@@ -205,6 +215,7 @@ function commerce_bundle_field_formatter_view($entity_type, $entity, $field, $in
           'show_quantity' => $settings['show_quantity'],
           'default_quantity' => $settings['default_quantity'],
           'product_view_mode' => $settings['product_view_mode'],
+          'bundle_total_price_label' => $settings['bundle_total_price_label'],
         ),
       );
     }
@@ -275,6 +286,7 @@ function commerce_bundle_field_attach_view_alter(&$output, $context) {
         // drupal_get_form(). It will be rendered when the rest of the object is
         // rendered for display.
         $cart_context['view_mode'] = $arguments['product_view_mode'];
+        $cart_context['bundle_total_price_label'] = $arguments['bundle_total_price_label'];
         $output[$field_name][$key] = drupal_get_form($arguments['form_id'], $arguments['line_items'], $arguments['show_quantity'], $arguments['default_quantity'], $cart_context);
       }
     }

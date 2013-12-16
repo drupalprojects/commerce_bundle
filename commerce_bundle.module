@@ -625,9 +625,9 @@ function commerce_bundle_add_to_cart_form($form, &$form_state, $line_items, $sho
     );
   }
   // Add the total bundle price to the form.
-  $form['total_bundle_price'] = array(
+  $form['bundle_total_price'] = array(
     '#prefix' => '<div class="total-bundle-price">',
-    '#markup' => commerce_currency_format($form_state['bundle_total_price'], $currency_code),
+    '#markup' => t('@label', array('@label' => $context['bundle_total_price_label'])) . '  ' . commerce_currency_format($form_state['bundle_total_price'], $currency_code),
     '#suffix' => '</div>',
   );
 
