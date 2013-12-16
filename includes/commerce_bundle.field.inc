@@ -26,7 +26,6 @@ function commerce_bundle_field_formatter_info() {
       ),
     ),
   );
-  dpm('stop');
 }
 
 /**
