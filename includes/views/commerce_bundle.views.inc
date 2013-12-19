@@ -130,5 +130,5 @@ function commerce_bundle_preprocess_views_view_table(&$vars) {
     }
   }
   $path = drupal_get_path('module', 'commerce_bundle');
-  drupal_add_css($path . '/theme/commerce_bundle.css');
+  drupal_add_css($path . '/theme/commerce_bundle_cart.css');
 }
