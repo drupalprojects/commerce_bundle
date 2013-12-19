@@ -4,6 +4,7 @@ package = Commerce (contrib)
 dependencies[] = commerce_product
 dependencies[] = commerce_line_item
 dependencies[] = commerce_bundle_item
+dependencies[] = inline_entity_form
 core = 7.x
 
 ; Styles
