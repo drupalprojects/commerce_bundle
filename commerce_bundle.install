@@ -232,7 +232,7 @@ function commerce_bundle_installed_fields() {
         'settings' => array(
           'link' => FALSE,
         ),
-        'type' => 'entityreference_label',
+        'type' => 'hidden',
         'weight' => 5,
       ),
       'line_item' => array(
