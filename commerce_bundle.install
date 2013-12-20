@@ -306,7 +306,7 @@ function commerce_bundle_installed_fields() {
           'scale' => 0,
           'thousand_separator' => ' ',
         ),
-        'type' => 'number_integer',
+        'type' => 'hidden',
         'weight' => 4,
       ),
     ),
