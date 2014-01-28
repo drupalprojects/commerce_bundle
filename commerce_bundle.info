@@ -5,7 +5,7 @@ core = 7.x
 
 dependencies[] = commerce_bundle_item
 dependencies[] = inline_entity_form
-
+dependencies[] = number
 
 ; Styles
 stylesheets[all][] = theme/commerce_bundle.css
