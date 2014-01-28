@@ -1,11 +1,11 @@
 name = Commerce Bundle
 description = Provides product bundles for Drupal Commerce.
 package = Commerce (contrib)
-dependencies[] = commerce_product
-dependencies[] = commerce_line_item
+core = 7.x
+
 dependencies[] = commerce_bundle_item
 dependencies[] = inline_entity_form
-core = 7.x
+
 
 ; Styles
 stylesheets[all][] = theme/commerce_bundle.css
