@@ -23,3 +23,6 @@ files[] = includes/views/handlers/commerce_bundle_item_handler_field_item_link_e
 files[] = includes/views/handlers/commerce_bundle_item_handler_field_item_operations.inc
 files[] = includes/views/handlers/commerce_bundle_item_handler_field_item_type.inc
 files[] = includes/views/handlers/commerce_bundle_item_handler_filter_item_type.inc
+
+; Commerce Multichannel Integration Migration Class
+files[] = includes/commerce_multichannel.commerce_bundle_item.inc

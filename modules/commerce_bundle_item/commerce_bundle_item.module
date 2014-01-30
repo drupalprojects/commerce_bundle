@@ -585,6 +585,22 @@ function template_preprocess_commerce_bundle_item_status(&$vars) {
 // Integration
 
 /**
+ * Implements hook_commerce_multichannel_migration_info().
+ */
+function commerce_bundle_item_commerce_multichannel_migration_info() {
+  $items = array(
+    'commerce_bundle_item' => array(
+      'machine_name' => 'CMMigration_commerce_bundle_item',
+      'class_name' => 'CommerceMultichannelMigration_commerce_bundle_item',
+      'group_name' => 'commerce_multichannel_products',
+      'entity_base_table' => 'commerce_bundle_item',
+    ),
+  );
+
+  return $items;
+}
+
+/**
  * Implements hook_views_api().
  */
 function commerce_bundle_item_views_api() {
