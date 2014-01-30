@@ -41,10 +41,12 @@ function commerce_bundle_item_entity_info() {
     'controller class' => 'CommerceBundleItemEntityController',
     'base table' => 'commerce_bundle_item',
     'fieldable' => TRUE,
+    'uuid' => TRUE,
     'entity keys' => array(
       'id' => 'item_id',
       'bundle' => 'type',
       'label' => 'item_id',
+      'uuid' => 'uuid',
     ),
     'bundle keys' => array(
       'bundle' => 'type',

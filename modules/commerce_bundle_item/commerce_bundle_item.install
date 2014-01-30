@@ -47,6 +47,9 @@ function commerce_bundle_item_schema() {
       'item_type' => array('type'),
     ),
   );
+  if (module_exists('uuid')) {
+    $schema['commerce_bundle_item']['fields']['uuid'] = uuid_schema_field_definition();
+  }
 
   return $schema;
 }

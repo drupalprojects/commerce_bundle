@@ -102,11 +102,11 @@ function commerce_bundle_installed_fields() {
     'entity_types' => array(),
     'field_name' => 'commerce_bundle_item_id',
     'foreign keys' => array(
-      'node' => array(
+      'commerce_bundle_item' => array(
         'columns' => array(
-          'target_id' => 'nid',
+          'target_id' => 'item_id',
         ),
-        'table' => 'node',
+        'table' => 'commerce_bundle_item',
       ),
     ),
     'indexes' => array(
@@ -183,11 +183,11 @@ function commerce_bundle_installed_fields() {
     'entity_types' => array(),
     'field_name' => 'commerce_bundle_items',
     'foreign keys' => array(
-      'node' => array(
+      'commerce_bundle_item' => array(
         'columns' => array(
-          'target_id' => 'nid',
+          'target_id' => 'item_id',
         ),
-        'table' => 'node',
+        'table' => 'commerce_bundle_item',
       ),
     ),
     'indexes' => array(
@@ -382,11 +382,11 @@ function commerce_bundle_installed_fields() {
     'entity_types' => array(),
     'field_name' => 'commerce_bundle_group_id',
     'foreign keys' => array(
-      'node' => array(
+      'commerce_product' => array(
         'columns' => array(
-          'target_id' => 'nid',
+          'target_id' => 'product_id',
         ),
-        'table' => 'node',
+        'table' => 'commerce_product',
       ),
     ),
     'indexes' => array(
@@ -640,6 +640,13 @@ function commerce_bundle_uninstall() {
   module_load_include('module', 'commerce');
   commerce_delete_instances('commerce_line_item', 'commerce_bundle_line_item');
   commerce_delete_instances('commerce_product', 'commerce_bundle_group');
+
+  $fields = commerce_bundle_installed_fields();
+  foreach ($fields['field_instance'] as $field_instance) {
+    $instance = field_info_instance($field_instance['entity_type'], $field_instance['field_name'], $field_instance['bundle']);
+    field_delete_instance($instance);
+  }
+  commerce_product_ui_product_type_delete('commerce_bundle_group');
 }
 
 /**
