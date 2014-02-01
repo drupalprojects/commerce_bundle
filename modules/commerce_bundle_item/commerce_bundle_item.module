@@ -33,7 +33,6 @@ function commerce_bundle_item_hook_info() {
  */
 function commerce_bundle_item_entity_info() {
   $return = array();
-  $module_path = drupal_get_path('module', 'commerce_bundle_item');
 
   $return['commerce_bundle_item'] = array(
     'label' => t('Commerce Bundle Item'),
