@@ -298,3 +298,79 @@ function commerce_bundle_field_attach_view_alter(&$output, $context) {
   }
 }
 
+/**
+ * Implements hook_field_info().
+ */
+function commerce_bundle_field_info() {
+  return array(
+    'line_item_type' => array(
+      'label' => t('Line item type'),
+      'description' => t('Allows entities to specify a choice from a list of line item types.'),
+      'settings' => array(),
+      'instance_settings' => array(),
+      'default_widget' => 'line_item_type_select',
+      'default_formatter' => 'line_item_type_default',
+      'no_ui' => FALSE,
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_instance_settings_form().
+ */
+function commerce_bundle_field_instance_settings_form($field, $instance) {
+  $form = $form_state = array();
+
+  return $form;
+}
+
+/**
+ * Implements hook_field_validate().
+ */
+function commerce_bundle_field_validate($entity_type, $entity, $field, $instance, $langcode, $items, &$errors) {
+
+}
+
+/**
+ * Implements hook_field_is_empty().
+ */
+function commerce_bundle_field_is_empty($item, $field) {
+  if (empty($item['line_item_type']) && (string) $item['line_item_type'] !== '') {
+    return TRUE;
+  }
+  return FALSE;
+}
+
+/**
+ * Implements hook_field_widget_info().
+ */
+function commerce_bundle_field_widget_info() {
+  return array(
+    'line_item_type_select' => array(
+      'label' => t('Line item select'),
+      'field types' => array('line_item_type'),
+      'settings' => array(),
+      'behaviors' => array(
+        'multiple values' => FIELD_BEHAVIOR_DEFAULT,
+        'default value' => FIELD_BEHAVIOR_DEFAULT,
+      ),
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_widget_form().
+ */
+function commerce_bundle_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+  $element += array(
+    '#type' => 'radios',
+    '#options' => commerce_bundle_line_item_type_options_list(),
+    '#default_value' => isset($items[$delta]['line_item_type']) ? $items[$delta]['line_item_type'] : array()
+  );
+
+  // Force some help text into the field, appending anything the user added.
+  $element['#description'] .= ' ' . t('Select what type of line item should be
+  used when this product group is being rendered in a bundle add-to-cart form.');
+
+  return array('line_item_type' => $element);
+}

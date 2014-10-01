@@ -32,19 +32,42 @@ function commerce_bundle_entity_info_alter(&$info) {
   return $info;
 }
 
+/*
+ * Implements hook_menu().
+ */
+function commerce_bundle_menu() {
+  $items['admin/commerce/config/product-bundles'] = array(
+    'title' => 'Product bundle settings',
+    'description' => 'Configure product bundle settings',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('commerce_bundle_settings_form'),
+    'file' => 'includes/commerce_bundle.admin.inc',
+    'access arguments' => array('administer product bundles')
+  );
+
+  return $items;
+}
+
 /**
  * Retuns an array of bundle line item types
  */
 function commerce_bundle_line_item_types() {
-  $types = array();
+  // Look up from configuration and default to the special bundle line item.
+  return variable_get('bundle_line_item_types', array('commerce_bundle_line_item'));
+}
 
-  foreach (commerce_line_item_types() as $type => $line_item_type) {
-    if (!empty($line_item_type['product']) && !empty($line_item_type['bundle'])) {
-      $types[] = $type;
+/**
+ * @return array|bool
+ */
+function commerce_bundle_line_item_type_options_list() {
+  $list = commerce_line_item_type_options_list();
+  foreach ($list as $type => $label) {
+    if (!in_array($type, commerce_bundle_line_item_types())) {
+      unset($list[$type]);
     }
   }
 
-  return $types;
+  return $list;
 }
 
 /**
@@ -82,7 +105,7 @@ function commerce_bundle_commerce_line_item_type_info() {
     'name' => t('Bundle Line Item'),
     'description' => t('References Bundle Groups, Bundle Items, and Bundle Products.'),
     'product' => TRUE,
-    'bundle' => TRUE,
+    //'bundle' => TRUE,
     'add_form_submit_value' => t('Add bundle'),
     'base' => 'commerce_product_line_item',
     'callbacks' => array(
@@ -1322,7 +1345,6 @@ function commerce_bundle_commerce_cart_product_comparison_properties_alter(&$com
  * @return array $bundle_unit_price
  *   A price field data array.
  */
-
 function commerce_bundle_get_bundle_product_price($group_id, $bundle_item_id) {
   $group_product = commerce_product_load($group_id);
   $group_wrapper = entity_metadata_wrapper('commerce_product', $group_product);
@@ -1341,4 +1363,12 @@ function commerce_bundle_get_bundle_product_price($group_id, $bundle_item_id) {
   }
 
   return $bundle_unit_price;
+}
+
+/*
+ * Implements hook_flush_caches().
+ */
+function commerce_bundle_flush_caches() {
+  module_load_install('commerce_bundle');
+  commerce_bundle_install_line_item_field_instances();
 }
