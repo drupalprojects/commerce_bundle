@@ -792,6 +792,8 @@ function commerce_bundle_update_7100() {
  * Add line item type field to bundle group products
  */
 function commerce_bundle_update_7101() {
+  field_info_cache_clear();
+
   // Create "Line item type" field.
   $check_field = field_info_field('commerce_bundle_line_item_type');
   if (empty($check_field)) {
