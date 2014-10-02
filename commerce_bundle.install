@@ -787,3 +787,10 @@ function commerce_bundle_update_7100() {
 
   field_cache_clear();
 }
+
+/**
+ * Add line item type field to bundle group products
+ */
+function commerce_bundle_update_7101() {
+  // No need to do anything, just let update.php clear the cache.
+}
