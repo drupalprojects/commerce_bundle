@@ -182,19 +182,23 @@ function commerce_bundle_field_formatter_view($entity_type, $entity, $field, $in
       $bundle_item_field_name = 'commerce_bundle_items';
 
       // Resolve a valid bundle line item type.
-      $type = 'commerce_bundle_line_item';
+      /*$type = 'commerce_bundle_line_item';
       if (!empty($settings['line_item_type']) &&
           in_array($settings['line_item_type'], commerce_bundle_line_item_types(), TRUE)) {
         $type = $settings['line_item_type'];
-      }
+      }*/
 
       // Create a line item per group.
       $line_items = array();
       foreach ($groups as $group_id => $group) {
         $group_wrapper = entity_metadata_wrapper('commerce_product', $group);
+
         if (!isset($group_wrapper->{$bundle_item_field_name})) {
           continue;
         }
+
+        // Get the type defined by this product group.
+        $type = $group_wrapper->commerce_bundle_line_item_type->value();
 
         $bundle_items = $group_wrapper->{$bundle_item_field_name}->value();
         if ($bundle_item = commerce_bundle_item_default_item($bundle_items)) {
@@ -310,6 +314,7 @@ function commerce_bundle_field_info() {
       'instance_settings' => array(),
       'default_widget' => 'line_item_type_select',
       'default_formatter' => 'line_item_type_default',
+      'property_type' => 'string',
       'no_ui' => FALSE,
     ),
   );

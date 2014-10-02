@@ -495,6 +495,24 @@ function commerce_bundle_add_to_cart_form($form, &$form_state, $line_items, $sho
     // Build attribute form.
     $group_form = commerce_bundle_line_item_attribute_form($line_item, $group_form, $form_state);
 
+    // Build line item field form.
+    $group_form['line_item_fields'] = array(
+      '#type' => 'container',
+      '#tree' => TRUE,
+      '#parents' => array($group_element_key, 'line_item_fields')
+    );
+    field_attach_form('commerce_line_item', $line_item, $group_form['line_item_fields'], $form_state);
+
+    // Deny access to any fields that are not line item attribute fields.
+    $line_item_instance_info = field_info_instances('commerce_line_item', $line_item->type);
+    foreach (element_children($group_form['line_item_fields']) as $field_name) {
+      $group_form['line_item_fields'][$field_name]['#commerce_cart_settings'] = commerce_cart_field_instance_access_settings($line_item_instance_info[$field_name]);
+
+      if (empty($group_form['line_item_fields'][$field_name]['#commerce_cart_settings']['field_access'])) {
+        $group_form['line_item_fields'][$field_name]['#access'] = FALSE;
+      }
+    }
+
     // Update product to attributes default product.
     if (!empty($form_state['product_groups'][$group_element_key]['default_product'])) {
       $group_default_product = $form_state['product_groups'][$group_element_key]['default_product'];
@@ -531,7 +549,6 @@ function commerce_bundle_add_to_cart_form($form, &$form_state, $line_items, $sho
         $content_key = 'product:' . $product_field_name;
 
         $group_form[$content_key] = field_view_field('commerce_product', $line_item_wrapper->commerce_product->value(), $product_field_name, $reference_view_mode);
-
 
         // Construct an array of classes that will be used to theme and
         // target the rendered field for AJAX replacement.
@@ -708,7 +725,7 @@ function commerce_bundle_add_to_cart_form_validate($form, &$form_state) {
         form_set_value($group_form['product_id'], $group_form_state_values['attributes']['product_select'], $form_state);
       }
 
-/** @todo: pass in nest form state? or does this figure it out ***/
+      // Validate the line item fields.
       if (!empty($group_form['line_item_fields'])) {
         field_attach_form_validate('commerce_line_item', $line_item, $group_form['line_item_fields'], $form_state);
       }
@@ -773,7 +790,7 @@ function commerce_bundle_add_to_cart_form_submit($form, &$form_state) {
           // module wanting to alter a line item field widget to be available must
           // update both its form element's #access value and the field_access value
           // of the #commerce_cart_settings array.
-          if (empty($form['line_item_fields'][$field_name]['#commerce_cart_settings']['field_access'])) {
+          if (empty($group_form['line_item_fields'][$field_name]['#commerce_cart_settings']['field_access'])) {
             unset($group_form_state_values['line_item_fields'][$field_name]);
           }
         }

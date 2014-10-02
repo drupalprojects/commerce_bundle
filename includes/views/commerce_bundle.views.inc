@@ -36,7 +36,7 @@ function commerce_bundle_views_post_execute(&$view) {
       foreach ($view->result as $row_index => $current_row) {
         $current_entity = $current_row->_field_data[$alias]['entity'];
         // We don't care about anything but bundle line items.
-        if ($current_entity->type != 'commerce_bundle_line_item') {
+        if (!in_array($current_entity->type, commerce_bundle_line_item_types())) {
           continue;
         }
         // Now we're dealing with a bundle line item.
@@ -55,32 +55,49 @@ function commerce_bundle_views_post_execute(&$view) {
             // the next row has a config_id but it's different.
             $next_row = isset($view->result[$row_index + 1]) ? $view->result[$row_index + 1] : NULL;
             $next_entity_wrapper = isset($next_row) ? entity_metadata_wrapper('commerce_line_item', $next_row->_field_data[$alias]['entity']) : NULL;
-            if (!isset($next_row) || $next_row->_field_data[$alias]['entity']->type != 'commerce_bundle_line_item' || $next_entity_wrapper->commerce_bundle_config_id->value() != $current_entity_wrapper->commerce_bundle_config_id->value()) {
+            if (!isset($next_row) || !in_array($next_row->_field_data[$alias]['entity']->type, commerce_bundle_line_item_types()) || $next_entity_wrapper->commerce_bundle_config_id->value() != $current_entity_wrapper->commerce_bundle_config_id->value()) {
               $view->result[$row_index]->bundle_row_classes[] = 'bundle-last';
             }
           }
         }
 
-        if (!isset($previous_row) || $previous_row->_field_data[$alias]['entity']->type != 'commerce_bundle_line_item' || $previous_entity_wrapper->commerce_bundle_config_id->value() != $current_entity_wrapper->commerce_bundle_config_id->value()) {
+        if (!isset($previous_row) || !in_array($previous_row->_field_data[$alias]['entity']->type, commerce_bundle_line_item_types()) || $previous_entity_wrapper->commerce_bundle_config_id->value() != $current_entity_wrapper->commerce_bundle_config_id->value()) {
           // It's a first bundle line item in the group.
           // We make sure to add css classes for the current row.
           $view->result[$row_index]->bundle_row_classes = array('bundle-item', 'bundle-config-'. $current_entity_wrapper->commerce_bundle_config_id->value());
           // We create a control row and note the row index that it needs to be
-          // spliced into.
-          $new_row = new stdClass();
+          // spliced into. NOTE: this is not an exceptionally sound way of
+          // making sure that the control has the right elements to avoid
+          // throwing errors for every kind of field that might be on the view.
+          $new_row = clone $current_row;
+          foreach ($new_row as $property => $data) {
+            // Special case for the display path field.
+            if ($property == 'field_commerce_display_path') {
+              // Set the display path to the current row's.
+              $path = 'node/' . $current_entity_wrapper->commerce_bundle_id->nid->value();
+              // Set the display path for the control row.
+              $new_row->field_commerce_display_path = $current_row->field_commerce_display_path;
+              $new_row->field_commerce_display_path[0]['rendered']['#markup'] = $path;
+              $new_row->field_commerce_display_path[0]['raw']['value'] = $path;
+              $new_row->field_commerce_display_path[0]['raw']['safe_value'] = $path;
+            }
+            if (is_array($data)) {
+              foreach ($data as $delta => $value) {
+                // Add empty markup for field api fields to stop empty property
+                // warnings.
+                if (isset($value['rendered'])) {
+                  $new_row->{$property}[$delta]['rendered']['#markup'] = '';
+                }
+              }
+            }
+            else {
+              // Properties like this we just don't need.
+              unset($new_row->{$property});
+            }
+          }
+
           $new_row->_field_data[$alias]['entity_type'] = 'bundle_control';
           $new_row->_field_data[$alias]['entity'] = new stdClass();
-          // Set the display path to the current row's.
-          $path = 'node/' . $current_entity_wrapper->commerce_bundle_id->nid->value();
-          // Set the display path for the control row.
-          $new_row->field_commerce_display_path = $current_row->field_commerce_display_path;
-          $new_row->field_commerce_display_path[0]['rendered']['#markup'] = $path;
-          $new_row->field_commerce_display_path[0]['raw']['value'] = $path;
-          $new_row->field_commerce_display_path[0]['raw']['safe_value'] = $path;
-
-          // Add some dummy markup to remove Views render warnings.
-          $new_row->field_commerce_unit_price[0]['rendered']['#markup'] = '';
-          $new_row->field_commerce_total[0]['rendered']['#markup'] = '';
 
           $data =& $new_row->_field_data[$alias]['entity'];
           $data->commerce_bundle_id = $current_entity_wrapper->commerce_bundle_id->value();

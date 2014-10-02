@@ -61,7 +61,7 @@ class commerce_bundle_handler_field_edit_quantity extends commerce_line_item_han
         $form_data['#maxlength'] = max(4, strlen($quantity));
         $form_data['#line_item_id'] = $line_item_id;
 
-        if($data['entity']->type == 'commerce_bundle_line_item') {
+        if(in_array($data['entity']->type, commerce_bundle_line_item_types())) {
           // It's a bundle product line item. Disable it.
           $form_data['#disabled'] = TRUE;
         }
