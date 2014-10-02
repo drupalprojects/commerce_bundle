@@ -181,13 +181,6 @@ function commerce_bundle_field_formatter_view($entity_type, $entity, $field, $in
     if (!empty($groups)) {
       $bundle_item_field_name = 'commerce_bundle_items';
 
-      // Resolve a valid bundle line item type.
-      /*$type = 'commerce_bundle_line_item';
-      if (!empty($settings['line_item_type']) &&
-          in_array($settings['line_item_type'], commerce_bundle_line_item_types(), TRUE)) {
-        $type = $settings['line_item_type'];
-      }*/
-
       // Create a line item per group.
       $line_items = array();
       foreach ($groups as $group_id => $group) {
@@ -197,8 +190,9 @@ function commerce_bundle_field_formatter_view($entity_type, $entity, $field, $in
           continue;
         }
 
-        // Get the type defined by this product group.
-        $type = $group_wrapper->commerce_bundle_line_item_type->value();
+        // Get the type defined by this product group. Default to the bundle
+        // line item type.
+        $type = $group_wrapper->__isset('commerce_bundle_line_item_type') ? $group_wrapper->commerce_bundle_line_item_type->value() : 'commerce_bundle_line_item';
 
         $bundle_items = $group_wrapper->{$bundle_item_field_name}->value();
         if ($bundle_item = commerce_bundle_item_default_item($bundle_items)) {
