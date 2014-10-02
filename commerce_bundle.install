@@ -792,5 +792,13 @@ function commerce_bundle_update_7100() {
  * Add line item type field to bundle group products
  */
 function commerce_bundle_update_7101() {
-  // No need to do anything, just let update.php clear the cache.
+  $check_instance = field_info_instance('commerce_product', 'commerce_bundle_line_item_type', 'commerce_bundle_group');
+  if (empty($check_instance)) {
+    $instances = commerce_bundle_product_field_instance_configuration();
+
+    field_create_instance($instances['commerce_bundle_line_item_type']);
+  }
+  else {
+    throw new DrupalUpdateException('Unable to add commerce_bundle_line_item_type field to bundle group product type.');
+  }
 }
