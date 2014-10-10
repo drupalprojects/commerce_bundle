@@ -69,8 +69,10 @@ function commerce_bundle_views_post_execute(&$view) {
           // spliced into. NOTE: this is not an exceptionally sound way of
           // making sure that the control has the right elements to avoid
           // throwing errors for every kind of field that might be on the view.
-          $new_row = clone $current_row;
-          foreach ($new_row as $property => $data) {
+
+          $new_row = new stdClass();
+
+          foreach ($current_row as $property => $data) {
             // Special case for the display path field.
             if ($property == 'field_commerce_display_path') {
               // Set the display path to the current row's.
@@ -90,24 +92,19 @@ function commerce_bundle_views_post_execute(&$view) {
                 }
               }
             }
-            else {
-              // Properties like this we just don't need.
-              unset($new_row->{$property});
-            }
           }
 
           $new_row->_field_data[$alias]['entity_type'] = 'bundle_control';
           $new_row->_field_data[$alias]['entity'] = new stdClass();
 
-          $data =& $new_row->_field_data[$alias]['entity'];
-          $data->commerce_bundle_id = $current_entity_wrapper->commerce_bundle_id->value();
-          $data->commerce_product = $current_entity_wrapper->commerce_product->value();
-          $data->order_id = $current_entity->order_id;
-          $data->commerce_bundle_config_id = $current_entity_wrapper->commerce_bundle_config_id->value();
+          $new_row->_field_data[$alias]['entity']->commerce_bundle_id = $current_entity_wrapper->commerce_bundle_id->value();
+          $new_row->_field_data[$alias]['entity']->commerce_product = $current_entity_wrapper->commerce_product->value();
+          $new_row->_field_data[$alias]['entity']->order_id = $current_entity->order_id;
+          $new_row->_field_data[$alias]['entity']->commerce_bundle_config_id = $current_entity_wrapper->commerce_bundle_config_id->value();
 
           // We set the latest config id so that we know which rows need bundle
           // classes.
-          $current_config_id = $data->commerce_bundle_config_id;
+          $current_config_id = $new_row->_field_data[$alias]['entity']->commerce_bundle_config_id;
 
           // We store the insertion point (ie row index) and the control row
           // data to build the new view result after inspection.
