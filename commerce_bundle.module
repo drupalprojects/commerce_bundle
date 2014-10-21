@@ -53,7 +53,14 @@ function commerce_bundle_menu() {
  */
 function commerce_bundle_line_item_types() {
   // Look up from configuration and default to the special bundle line item.
-  return variable_get('bundle_line_item_types', array('commerce_bundle_line_item'));
+  $config = variable_get('bundle_line_item_types', array('commerce_bundle_line_item' => TRUE));
+  foreach ($config as $line_item_type => $value) {
+    if (!$value) {
+      unset($config[$line_item_type]);
+    }
+  }
+
+  return array_values($config);
 }
 
 /**
@@ -301,12 +308,10 @@ function commerce_bundle_product_line_item_populate($line_item, $bundler, $group
     // Update line item quantity.
     $line_item->quantity *= (int) $unit_quantity;
   }
-
+/*
   $bundle_unit_price = commerce_bundle_get_bundle_product_price($group->product_id, $bundle_item->item_id);
   // Set the unit price as the resolved bundle price.
   $line_item_wrapper->commerce_unit_price = $bundle_unit_price;
-
-  // TODO: add an alter hook for bundle price ?
 
   if (!is_null($bundle_unit_price)) {
     $line_item_wrapper->commerce_unit_price->data = commerce_price_component_add(
@@ -315,7 +320,7 @@ function commerce_bundle_product_line_item_populate($line_item, $bundler, $group
       $bundle_unit_price,
       TRUE
     );
-  }
+  }*/
 }
 
 /**
@@ -401,7 +406,7 @@ function commerce_bundle_add_to_cart_form($form, &$form_state, $line_items, $sho
   $form_state['context'] = $context;
 
   // Store the line item passed to the form builder for reference on submit.
-  $form_state['line_items'] = &$line_items;
+  $form_state['line_items'] = $line_items;
 
   // Initial product group storage.
   if (!isset($form_state['product_groups'])) {
@@ -433,7 +438,7 @@ function commerce_bundle_add_to_cart_form($form, &$form_state, $line_items, $sho
   $form_state['bundle_total_price'] = 0;
   $currency_code = NULL;
 
-  foreach ($line_items as &$line_item) {
+  foreach ($line_items as $delta => $line_item) {
     $line_item_wrapper = entity_metadata_wrapper('commerce_line_item', $line_item);
     if (!isset($line_item_wrapper->commerce_bundle_group_id)) {
       continue;
@@ -513,10 +518,12 @@ function commerce_bundle_add_to_cart_form($form, &$form_state, $line_items, $sho
       }
     }
 
-    // Update product to attributes default product.
+    // Update line item to the new product to attributes default product.
     if (!empty($form_state['product_groups'][$group_element_key]['default_product'])) {
       $group_default_product = $form_state['product_groups'][$group_element_key]['default_product'];
-      $line_item_wrapper->commerce_product = $group_default_product;
+      // $line_item_wrapper->commerce_product = $group_default_product;
+
+      commerce_product_line_item_populate($line_item, $group_default_product);
 
       // Find the bundle_item for the default product.
       $default_bundle_item = commerce_bundle_item_get_product_item(
@@ -528,13 +535,18 @@ function commerce_bundle_add_to_cart_form($form, &$form_state, $line_items, $sho
       $line_item_wrapper->commerce_bundle_item_id = $default_bundle_item;
     }
 
-    // Update the bundle total price. Default currency code is the first line
-    // item in $form_state.
-    if (empty($currency_code)) {
+    // Run pricing rules.
+    rules_invoke_event('commerce_product_calculate_sell_price', $line_item);
+
+
+    /*if (empty($currency_code)) {
       $currency_code = $line_item_wrapper->commerce_unit_price->currency_code->value();
     }
-    $bundle_product_price = commerce_bundle_get_bundle_product_price($group_id, $line_item_wrapper->commerce_bundle_item_id->raw());
-    $form_state['bundle_total_price'] += $group_unit_qty * $bundle_product_price['amount'];
+    $bundle_product_price = commerce_bundle_get_bundle_product_price($group_id, $line_item_wrapper->commerce_bundle_item_id->raw());*/
+
+    // Update the bundle total price. Default currency code is the first line
+    // item in $form_state.
+    $form_state['bundle_total_price'] += $group_unit_qty * $line_item_wrapper->commerce_unit_price->amount->value();
 
     // Loop through the fields on the referenced product's type.
     foreach (field_info_instances('commerce_product', $line_item_wrapper->commerce_product->type->value()) as $product_field_name => $product_field) {
@@ -626,6 +638,8 @@ function commerce_bundle_add_to_cart_form($form, &$form_state, $line_items, $sho
         $group_form[$content_key]['#suffix'] .= '</div>';
       }
     }
+
+    $form_state['line_items'][$delta] = $line_item;
   }
   unset($line_item, $group_form, $group_state);
 
@@ -717,6 +731,20 @@ function commerce_bundle_add_to_cart_form_validate($form, &$form_state) {
 
       $group_form = $form['product_groups']['product_group_' . $group_id];
       $group_form_state_values = &$form_state['values']['product_group_' . $group_id];
+
+      // Remove line item field values the user didn't have access to modify.
+      if (!empty($group_form_state_values['line_item_fields'])) {
+        foreach ($group_form_state_values['line_item_fields'] as $field_name => $value) {
+          // Note that we're checking the Commerce Cart settings that we inserted
+          // into this form element array back when we built the form. This means a
+          // module wanting to alter a line item field widget to be available must
+          // update both its form element's #access value and the field_access value
+          // of the #commerce_cart_settings array.
+          if (empty($group_form['line_item_fields'][$field_name]['#commerce_cart_settings']['field_access'])) {
+            unset($group_form_state_values['line_item_fields'][$field_name]);
+          }
+        }
+      }
 
       // If the attributes matching product selector was used, set the value of the
       // product_id field to match; this will be fixed on rebuild when the actual

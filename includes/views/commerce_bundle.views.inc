@@ -66,10 +66,7 @@ function commerce_bundle_views_post_execute(&$view) {
           // We make sure to add css classes for the current row.
           $view->result[$row_index]->bundle_row_classes = array('bundle-item', 'bundle-config-'. $current_entity_wrapper->commerce_bundle_config_id->value());
           // We create a control row and note the row index that it needs to be
-          // spliced into. NOTE: this is not an exceptionally sound way of
-          // making sure that the control has the right elements to avoid
-          // throwing errors for every kind of field that might be on the view.
-
+          // spliced into.
           $new_row = new stdClass();
 
           foreach ($current_row as $property => $data) {
@@ -84,13 +81,12 @@ function commerce_bundle_views_post_execute(&$view) {
               $new_row->field_commerce_display_path[0]['raw']['safe_value'] = $path;
             }
             if (is_array($data)) {
-              foreach ($data as $delta => $value) {
-                // Add empty markup for field api fields to stop empty property
-                // warnings.
-                if (isset($value['rendered'])) {
-                  $new_row->{$property}[$delta]['rendered']['#markup'] = '';
-                }
-              }
+              // Set empty values for all fields from the control row. This is
+              // really just a hack that seems to cover all of our bases so far.
+              // It would be better to reverse engineer the row array structure
+              // some how, but there is not an obvious way to do this with the
+              // Views API.
+              $new_row->{$property}[0]['rendered']['#markup'] = '';
             }
           }
 
