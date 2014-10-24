@@ -7,6 +7,7 @@ dependencies[] = commerce_bundle_item
 dependencies[] = inline_entity_form
 dependencies[] = number
 dependencies[] = commerce_product_ui
+dependencies[] = commerce_product_reference
 
 ; Styles
 stylesheets[all][] = theme/commerce_bundle.css
