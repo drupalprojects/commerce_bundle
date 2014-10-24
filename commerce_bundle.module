@@ -60,7 +60,7 @@ function commerce_bundle_line_item_types() {
     }
   }
 
-  return array_values($config);
+  return array_keys($config);
 }
 
 /**
