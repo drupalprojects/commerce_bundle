@@ -30,7 +30,7 @@ class commerce_bundle_handler_field_edit_delete extends commerce_line_item_handl
       $alias = $this->aliases['line_item_id'];
       $data =& $row->_field_data[$alias];
       $form_data =& $form[$this->options['id']][$row_id];
-      if (isset($data['entity']->type) && in_array($data['entity']->type, commerce_bundle_line_item_types())) {
+      if (isset($data['entity']->type) && in_array($data['entity']->type, commerce_bundle_line_item_types()) && !empty($data['entity']->commerce_bundle_id)) {
         // Only the control row of a bundle gets a 'Remove' button.
         $form_data['#line_item_id'] = $data['entity']->line_item_id;
         continue;

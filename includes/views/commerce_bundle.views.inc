@@ -35,12 +35,13 @@ function commerce_bundle_views_post_execute(&$view) {
       // to be placed, and add bundle css classes.
       foreach ($view->result as $row_index => $current_row) {
         $current_entity = $current_row->_field_data[$alias]['entity'];
+        $current_entity_wrapper = entity_metadata_wrapper('commerce_line_item', $current_entity);
+        $bundle_entity_type = $current_entity_wrapper->commerce_bundle_id->type();
+
         // We don't care about anything but bundle line items.
-        if (!in_array($current_entity->type, commerce_bundle_line_item_types())) {
+        if (!in_array($current_entity->type, commerce_bundle_line_item_types()) || !$current_entity_wrapper->commerce_bundle_id->value()) {
           continue;
         }
-        // Now we're dealing with a bundle line item.
-        $current_entity_wrapper = entity_metadata_wrapper('commerce_line_item', $current_entity);
 
         $previous_row = isset($view->result[$row_index - 1]) ? $view->result[$row_index - 1] : NULL;
         $previous_entity_wrapper = isset($previous_row) ? entity_metadata_wrapper('commerce_line_item', $previous_row->_field_data[$alias]['entity']) : NULL;
@@ -73,10 +74,15 @@ function commerce_bundle_views_post_execute(&$view) {
             // Special case for the display path field.
             if ($property == 'field_commerce_display_path') {
               // Set the display path to the current row's.
-              $path = 'node/' . $current_entity_wrapper->commerce_bundle_id->nid->value();
+              $uri = entity_uri($bundle_entity_type, $current_entity_wrapper->commerce_bundle_id->value());
+              if ($uri) {
+                $path = $uri['path'];
+              }
+
               // Set the display path for the control row.
               $new_row->field_commerce_display_path = $current_row->field_commerce_display_path;
               $new_row->field_commerce_display_path[0]['rendered']['#markup'] = $path;
+              $new_row->field_commerce_display_path[0]['rendered']['#access'] = TRUE;
               $new_row->field_commerce_display_path[0]['raw']['value'] = $path;
               $new_row->field_commerce_display_path[0]['raw']['safe_value'] = $path;
             }
