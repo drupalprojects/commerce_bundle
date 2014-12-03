@@ -75,7 +75,7 @@ function commerce_bundle_field_formatter_settings_form($field, $instance, $view_
     // View modes.
     $product_entity_info = entity_get_info('commerce_product');
     if (!empty($product_entity_info['view modes'])) {
-      $view_mode_options = array();
+      $view_mode_options = array('_none' => t('None'));
       foreach ($product_entity_info['view modes'] as $view_mode => $view_mode_info) {
         $view_mode_options[$view_mode] = check_plain($view_mode_info['label']);
       }

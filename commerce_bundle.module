@@ -549,96 +549,97 @@ function commerce_bundle_add_to_cart_form($form, &$form_state, $line_items, $sho
     $form_state['bundle_total_price'] += $group_unit_qty * $line_item_wrapper->commerce_unit_price->amount->value();
 
     // Loop through the fields on the referenced product's type.
-    foreach (field_info_instances('commerce_product', $line_item_wrapper->commerce_product->type->value()) as $product_field_name => $product_field) {
-      $reference_view_mode = $context['view_mode'];
-      if (!isset($product_field['display'][$reference_view_mode])) {
-        $reference_view_mode = 'default';
-      }
-
-      // Only prepare visible fields.
-      if (!isset($product_field['display'][$reference_view_mode]['type']) || $product_field['display'][$reference_view_mode]['type'] != 'hidden') {
-        // Add the product field to the entity's content array.
-        $content_key = 'product:' . $product_field_name;
-
-        $group_form[$content_key] = field_view_field('commerce_product', $line_item_wrapper->commerce_product->value(), $product_field_name, $reference_view_mode);
-
-        // Construct an array of classes that will be used to theme and
-        // target the rendered field for AJAX replacement.
-        $classes = array(
-          'commerce-product-field',
-          drupal_html_class('commerce-product-field-' . $product_field_name),
-          drupal_html_class('field-' . $product_field_name),
-          drupal_html_class(implode('-', array($context['entity_type'], $context['entity_id'], 'product', $product_field_name))),
-        );
-
-        // Add an extra class to distinguish empty product fields.
-        if (empty($group_form[$content_key])) {
-          $classes[] = 'commerce-product-field-empty';
+    if ($context['view_mode'] != '_none') {
+      foreach (field_info_instances('commerce_product', $line_item_wrapper->commerce_product->type->value()) as $product_field_name => $product_field) {
+        $reference_view_mode = $context['view_mode'];
+        if (!isset($product_field['display'][$reference_view_mode])) {
+          $reference_view_mode = 'default';
         }
 
-        // Ensure the field's content array has a prefix and suffix key.
-        $group_form[$content_key] += array(
-          '#prefix' => '',
-          '#suffix' => '',
-        );
+        // Only prepare visible fields.
+        if (!isset($product_field['display'][$reference_view_mode]['type']) || $product_field['display'][$reference_view_mode]['type'] != 'hidden') {
+          // Add the product field to the entity's content array.
+          $content_key = 'product:' . $product_field_name;
 
-        // Add the custom div before and after the prefix and suffix.
-        $group_form[$content_key]['#prefix'] = '<div class="' . implode(' ', $classes) . '">' . $group_form[$content_key]['#prefix'];
-        $group_form[$content_key]['#suffix'] .= '</div>';
+          $group_form[$content_key] = field_view_field('commerce_product', $line_item_wrapper->commerce_product->value(), $product_field_name, $reference_view_mode);
 
-      }
-    }
+          // Construct an array of classes that will be used to theme and
+          // target the rendered field for AJAX replacement.
+          $classes = array(
+            'commerce-product-field',
+            drupal_html_class('commerce-product-field-' . $product_field_name),
+            drupal_html_class('field-' . $product_field_name),
+            drupal_html_class(implode('-', array($context['entity_type'], $context['entity_id'], 'product', $product_field_name))),
+          );
 
-    // Attach "extra fields" to the bundle representing all the extra fields
-    // currently attached to products.
-    foreach (field_info_extra_fields('commerce_product', $line_item_wrapper->commerce_product->type->value(), 'display') as $product_extra_field_name => $product_extra_field) {
-      $display = field_extra_fields_get_display('commerce_product', $line_item_wrapper->commerce_product->type->value(), $reference_view_mode);
+          // Add an extra class to distinguish empty product fields.
+          if (empty($group_form[$content_key])) {
+            $classes[] = 'commerce-product-field-empty';
+          }
 
-      // Only include extra fields that specify a theme function and that
-      // are visible on the current view mode.
-      if (!empty($product_extra_field['theme']) &&
-        !empty($display[$product_extra_field_name]['visible'])) {
-        // Add the product extra field to the entity's content array.
-        $content_key = 'product:' . $product_extra_field_name;
+          // Ensure the field's content array has a prefix and suffix key.
+          $group_form[$content_key] += array(
+            '#prefix' => '',
+            '#suffix' => '',
+          );
 
-        $variables = array(
-          $product_extra_field_name => $line_item_wrapper->commerce_product->{$product_extra_field_name}->value(),
-          'label' => $product_extra_field['label'] . ':',
-          'product' => $line_item_wrapper->commerce_product->value(),
-        );
+          // Add the custom div before and after the prefix and suffix.
+          $group_form[$content_key]['#prefix'] = '<div class="' . implode(' ', $classes) . '">' . $group_form[$content_key]['#prefix'];
+          $group_form[$content_key]['#suffix'] .= '</div>';
 
-        $group_form[$content_key] = array(
-          '#markup' => theme($product_extra_field['theme'], $variables),
-          '#attached' => array(
-            'css' => array(drupal_get_path('module', 'commerce_product') . '/theme/commerce_product.theme.css'),
-          ),
-        );
-
-        // Construct an array of classes that will be used to theme and
-        // target the rendered field for AJAX replacement.
-        $classes = array(
-          'commerce-product-extra-field',
-          drupal_html_class('commerce-product-extra-field-' . $product_extra_field_name),
-          drupal_html_class(implode('-', array($context['entity_type'], $context['entity_id'], 'product', $product_extra_field_name))),
-        );
-
-        // Add an extra class to distinguish empty fields.
-        if (empty($group_form[$content_key])) {
-          $classes[] = 'commerce-product-extra-field-empty';
         }
+      }
 
-        // Ensure the extra field's content array has a prefix and suffix key.
-        $group_form[$content_key] += array(
-          '#prefix' => '',
-          '#suffix' => '',
-        );
+      // Attach "extra fields" to the bundle representing all the extra fields
+      // currently attached to products.
+      foreach (field_info_extra_fields('commerce_product', $line_item_wrapper->commerce_product->type->value(), 'display') as $product_extra_field_name => $product_extra_field) {
+        $display = field_extra_fields_get_display('commerce_product', $line_item_wrapper->commerce_product->type->value(), $reference_view_mode);
 
-        // Add the custom div before and after the prefix and suffix.
-        $group_form[$content_key]['#prefix'] = '<div class="' . implode(' ', $classes) . '">' . $group_form[$content_key]['#prefix'];
-        $group_form[$content_key]['#suffix'] .= '</div>';
+        // Only include extra fields that specify a theme function and that
+        // are visible on the current view mode.
+        if (!empty($product_extra_field['theme']) &&
+          !empty($display[$product_extra_field_name]['visible'])) {
+          // Add the product extra field to the entity's content array.
+          $content_key = 'product:' . $product_extra_field_name;
+
+          $variables = array(
+            $product_extra_field_name => $line_item_wrapper->commerce_product->{$product_extra_field_name}->value(),
+            'label' => $product_extra_field['label'] . ':',
+            'product' => $line_item_wrapper->commerce_product->value(),
+          );
+
+          $group_form[$content_key] = array(
+            '#markup' => theme($product_extra_field['theme'], $variables),
+            '#attached' => array(
+              'css' => array(drupal_get_path('module', 'commerce_product') . '/theme/commerce_product.theme.css'),
+            ),
+          );
+
+          // Construct an array of classes that will be used to theme and
+          // target the rendered field for AJAX replacement.
+          $classes = array(
+            'commerce-product-extra-field',
+            drupal_html_class('commerce-product-extra-field-' . $product_extra_field_name),
+            drupal_html_class(implode('-', array($context['entity_type'], $context['entity_id'], 'product', $product_extra_field_name))),
+          );
+
+          // Add an extra class to distinguish empty fields.
+          if (empty($group_form[$content_key])) {
+            $classes[] = 'commerce-product-extra-field-empty';
+          }
+
+          // Ensure the extra field's content array has a prefix and suffix key.
+          $group_form[$content_key] += array(
+            '#prefix' => '',
+            '#suffix' => '',
+          );
+
+          // Add the custom div before and after the prefix and suffix.
+          $group_form[$content_key]['#prefix'] = '<div class="' . implode(' ', $classes) . '">' . $group_form[$content_key]['#prefix'];
+          $group_form[$content_key]['#suffix'] .= '</div>';
+        }
       }
     }
-
     $form_state['line_items'][$delta] = $line_item;
   }
   unset($line_item, $group_form, $group_state);

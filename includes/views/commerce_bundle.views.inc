@@ -86,7 +86,7 @@ function commerce_bundle_views_post_execute(&$view) {
               $new_row->field_commerce_display_path[0]['raw']['value'] = $path;
               $new_row->field_commerce_display_path[0]['raw']['safe_value'] = $path;
             }
-            if (is_array($data)) {
+            else if (is_array($data)) {
               // Set empty values for all fields from the control row. This is
               // really just a hack that seems to cover all of our bases so far.
               // It would be better to reverse engineer the row array structure
