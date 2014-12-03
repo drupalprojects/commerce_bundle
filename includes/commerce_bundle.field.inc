@@ -20,7 +20,6 @@ function commerce_bundle_field_formatter_info() {
         'default_quantity' => 1,
         'combine' => TRUE,
         'show_single_product_attributes' => FALSE,
-        'line_item_type' => 'commerce_bundle_line_item',
         'product_view_mode' => 'commerce_bundle_add_to_cart_form',
         'bundle_total_price_label' => t('Total Bundle Price'),
       ),
@@ -72,24 +71,6 @@ function commerce_bundle_field_formatter_settings_form($field, $instance, $view_
       '#description' => t('If enabled, attribute widgets will be shown on the form with the only available options selected.'),
       '#default_value' => $settings['show_single_product_attributes'],
     );
-
-    // Add a conditionally visible line item type element.
-    $line_item_types = commerce_bundle_line_item_types();
-
-    if (count($line_item_types) > 1) {
-      $element['line_item_type'] = array(
-        '#type' => 'select',
-        '#title' => t('Add to Cart line item type'),
-        '#options' => array_intersect_key(commerce_line_item_type_get_name(), drupal_map_assoc($line_item_types)),
-        '#default_value' => $settings['line_item_type'],
-      );
-    }
-    elseif ($line_item_types) {
-      $element['line_item_type'] = array(
-        '#type' => 'hidden',
-        '#value' => reset($line_item_types),
-      );
-    }
 
     // View modes.
     $product_entity_info = entity_get_info('commerce_product');
@@ -143,10 +124,6 @@ function commerce_bundle_field_formatter_settings_summary($field, $instance, $vi
       t('Combine like items: !status', array('!status' => !empty($settings['combine']) ? t('Enabled') : t('Disabled'))),
       t('!visibility attributes on single product forms.', array('!visibility' => !empty($settings['show_single_product_attributes']) ? t('Showing') : t('Hiding'))),
     );
-
-    if (count(commerce_bundle_line_item_types()) > 1) {
-      $summary[] = t('Add to Cart line item type: @type', array('@type' => commerce_line_item_type_get_name($settings['line_item_type'])));
-    }
 
     $summary[] = t('Product view mode: @value', array('@value' => $settings['product_view_mode']));
   }
@@ -308,7 +285,7 @@ function commerce_bundle_field_info() {
       'instance_settings' => array(),
       'default_widget' => 'line_item_type_select',
       'default_formatter' => 'line_item_type_default',
-      'property_type' => 'string',
+      'property_type' => 'text',
       'no_ui' => FALSE,
     ),
   );
