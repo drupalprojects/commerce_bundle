@@ -55,7 +55,7 @@ function commerce_bundle_rules_condition_info() {
  * for bundles.
  */
 function commerce_bundle_rules_line_item_is_bundle($line_item_wrapper) {
-  return $line_item_wrapper->commerce_bundle_group_id->value() && in_array($line_item_wrapper->type->value(), commerce_bundle_line_item_types());
+  return $line_item_wrapper->__isset('commerce_bundle_group_id') && $line_item_wrapper->commerce_bundle_group_id->value() && in_array($line_item_wrapper->type->value(), commerce_bundle_line_item_types());
 }
 
 /*
